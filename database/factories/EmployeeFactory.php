@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Faker\Generator as Faker;
 
 class EmployeeFactory extends Factory
 {
@@ -12,13 +11,13 @@ class EmployeeFactory extends Factory
         static $personalId = 1;
 
         return [
-            'slug' => $this->faker->unique()->uuid(),
+            'slug' => (string) \Illuminate\Support\Str::uuid(),
             'personal_id' => $personalId++,
-            'email' => $this->faker->unique()->email(),
-            'phonenumber' => $this->faker->phoneNumber(),
-            'department' => $this->faker->word(),
-            'salary' => $this->faker->numberBetween(200000, 400000),
-            'hire_date' => $this->faker->date(),
+            'email' => 'employee' . $personalId . '@example.com',
+            'phonenumber' => '123-456-7890',
+            'department' => 'Engineering',
+            'salary' => 300000,
+            'hire_date' => now()->toDateString(),
             'status' => 'active',
             'employment_type' => 'full-time',
         ];
