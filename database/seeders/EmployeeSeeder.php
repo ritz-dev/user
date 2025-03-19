@@ -17,19 +17,20 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
-        // $personals = Personal::take(1)->get();
+        $personals = Personal::take(1)->get();
 
-        // Employee::create([
-        //     'slug' => Str::uuid(),
-        //     'personal_id' => $personals[0]->id,
-        //     "email" => "aye@gmail.com",
-        //     "phonenumber" => "09799123123",
-        //     "password" => Hash::make("Asd123!@#"),
-        //     'department' => 'Adminstrator',
-        //     'salary' => 7000000,
-        //     'hire_date' => '2024-12-09',
-        // ]);
+        Employee::create([
+            'slug' => Str::uuid(),
+            'personal_id' => $personals[0]->id,
+            "email" => "aye@gmail.com",
+            "phonenumber" => "09799123123",
+            "password" => Hash::make("Asd123!@#"),
+            'department' => 'Adminstrator',
+            'salary' => 7000000,
+            'hire_date' => '2024-12-09',
+        ]);
+        
 
-        Employee::factory()->count(10)->create();
+        // Employee::factory()->count(10)->create();
     }
 }

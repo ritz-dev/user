@@ -19,23 +19,11 @@ class TeacherSeeder extends Seeder
      */
     public function run(): void
     {
-        // $personal = Personal::skip(1)->take(1)->first();
+        $personal = Personal::skip(1)->take(1)->first();
 
-        // if (!$personal) {
-        //     throw new \Exception("Personal record not found at the specified index.");
-        // }
-
-        // $employee = Employee::create([
-        //     'slug' => Str::uuid(),
-        //     'personal_id' => $personal->id,
-        //     "email" => "ayeaye@gmail.com",
-        //     "phonenumber" => "09799123163",
-        //     "password" => Hash::make("Asd123!@#"),
-        //     'department' => 'Academic',
-        //     'salary' => 7000000,
-        //     'hire_date' => '2024-12-09',
-        //     'employment_type' => 'full-time',
-        // ]);
+        if (!$personal) {
+            throw new \Exception("Personal record not found at the specified index.");
+        }
 
         Teacher::create([
             'slug' => '915c85ef-7781-4358-88fd-b65494980a2a',
@@ -52,6 +40,6 @@ class TeacherSeeder extends Seeder
             'designation' => 'Teacher',
         ]);
 
-        Teacher::factory()->count(9)->create();
+        // Teacher::factory()->count(9)->create();
     }
 }
