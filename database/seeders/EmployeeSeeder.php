@@ -24,7 +24,6 @@ class EmployeeSeeder extends Seeder
             'personal_id' => $personals[0]->id,
             "email" => "aye@gmail.com",
             "phonenumber" => "09799123123",
-            "password" => Hash::make("Asd123!@#"),
             'department' => 'Adminstrator',
             'salary' => 7000000,
             'hire_date' => '2024-12-09',
