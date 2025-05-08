@@ -1,16 +1,11 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\PermissionController;
+
 use App\Http\Controllers\APIs\StudentController;
 use App\Http\Controllers\APIs\TeacherController;
 use App\Http\Controllers\APIs\EmployeeController;
 use App\Http\Controllers\APIs\PersonalController;
-use App\Http\Controllers\APIs\StudentSectionController;
 
 Route::prefix('personals')->group(function(){
     Route::post('list',[PersonalController::class,'list']);
@@ -44,4 +39,3 @@ Route::prefix('teachers')->group(function(){
     Route::put('update',[TeacherController::class,'update']);
     Route::post('delete',[TeacherController::class,'delete']);
 });
-

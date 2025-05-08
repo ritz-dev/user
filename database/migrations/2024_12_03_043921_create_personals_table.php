@@ -13,29 +13,19 @@ return new class extends Migration
     {
         Schema::create('personals', function (Blueprint $table) {
             $table->id();
-            $table->string('slug');
-            $table->string('name');
+            $table->string('slug')->unique();
+            $table->string('full_name');
+            $table->date('birth_date');
             $table->enum('gender',['male','female']);
-            $table->date('dob');
-            $table->string('address');
-            $table->string('state')->nullable();
-            $table->string('district')->nullable();
-            $table->string('register_code')->nullable();
-            $table->unique(['state', 'district', 'register_code'], 'unique_state_district_register_code');
+            $table->string('region_code',3);
+            $table->string('township_code',20);
+            $table->string('citizenship',5);
+            $table->string('serial_number',10);
             $table->softDeletes();
             $table->timestamps();
+
+            $table->unique(['region_code', 'township_code', 'serial_number'], 'region_township_serial_unique');
         });
-
-        // Check constraint (MySQL 8.0+ or PostgreSQL)
-        // DB::statement("
-        // ALTER TABLE personals
-        //     ADD CONSTRAINT state_district_register_null_check
-        //     CHECK (
-        //         (state IS NULL AND district IS NULL AND register_code IS NULL) OR
-        //         (state IS NOT NULL AND district IS NOT NULL AND register_code IS NOT NULL)
-        //     )
-        // ");
-
     }
 
     /**
@@ -43,14 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-
-        // Schema::table('personals', function (Blueprint $table) {
-        //     // Drop the constraint if supported by your DB
-        //     DB::statement("ALTER TABLE personals DROP CONSTRAINT state_district_register_null_check");
-
-        //     $table->dropUnique(['state', 'district', 'register_code']);
-        // });
-
         Schema::dropIfExists('personals');
     }
 };

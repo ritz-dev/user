@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Personal;
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Support\Str;
 
 
@@ -15,137 +14,23 @@ class PersonalSeeder extends Seeder
      */
     public function run(): void
     {
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Aung',
-            'gender' => 'male',
-            'dob' => '1994-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "THAGAKA",
-            'register_code' => "174505",
-        ]);
+        $people = [
+            ['full_name' => 'Aung Aung',     'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100001', 'birth_date' => '1990-01-01', 'gender' => 'male'],
+            ['full_name' => 'Mya Mya',       'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100002', 'birth_date' => '1992-03-12', 'gender' => 'female'],
+            ['full_name' => 'Ko Ko',         'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100003', 'birth_date' => '1985-07-20', 'gender' => 'male'],
+            ['full_name' => 'Thuzar',        'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100004', 'birth_date' => '1999-12-12', 'gender' => 'female'],
+            ['full_name' => 'Htet Htet',     'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100005', 'birth_date' => '2001-05-06', 'gender' => 'female'],
+            ['full_name' => 'Zaw Zaw',       'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100006', 'birth_date' => '1994-08-08', 'gender' => 'male'],
+            ['full_name' => 'Khin Khin',     'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100007', 'birth_date' => '1997-09-18', 'gender' => 'female'],
+            ['full_name' => 'Moe Moe',       'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100008', 'birth_date' => '1988-04-30', 'gender' => 'female'],
+            ['full_name' => 'Tun Tun',       'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100009', 'birth_date' => '1995-06-25', 'gender' => 'male'],
+            ['full_name' => 'Nandar',        'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100010', 'birth_date' => '2000-10-10', 'gender' => 'female'],
+        ];
 
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Kyaw',
-            'gender' => 'male',
-            'dob' => '1997-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "THAGAKA",
-            'register_code' => "145567",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Thu',
-            'gender' => 'male',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "THAGAKA",
-            'register_code' => "135564",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Mya',
-            'gender' => 'female',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "AAA",
-            'register_code' => "123456",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Aye',
-            'gender' => 'female',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "BBB",
-            'register_code' => "123455",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Thuzar',
-            'gender' => 'female',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "CCC",
-            'register_code' => "123454",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Thuta',
-            'gender' => 'male',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "DDD",
-            'register_code' => "123457",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Thu Thu',
-            'gender' => 'female',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "THAGAKA",
-            'register_code' => "123458",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Moe',
-            'gender' => 'male',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "EEE",
-            'register_code' => "111122",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Moe Thu',
-            'gender' => 'male',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "FFF",
-            'register_code' => "112211",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Hlaing',
-            'gender' => 'female',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "GGG",
-            'register_code' => "123456",
-        ]);
-
-        Personal::create([
-            'slug' => Str::uuid(),  // Use UUID for personal record
-            'name' => 'Thar',
-            'gender' => 'male',
-            'dob' => '2000-05-22',
-            'address' => "Ygn",
-            'state' => "12",
-            'district' => "HHH",
-            'register_code' => "123456",
-        ]);
-
+        foreach ($people as $person) {
+            Personal::create(array_merge($person, [
+                'slug' => Str::uuid(),
+            ]));
+        }
     }
 }
