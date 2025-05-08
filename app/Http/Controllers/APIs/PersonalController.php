@@ -6,6 +6,7 @@ use Exception;
 use App\Models\Personal;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\PersonalResource;
 use Illuminate\Validation\ValidationException;
 
