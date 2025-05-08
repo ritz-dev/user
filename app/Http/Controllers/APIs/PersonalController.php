@@ -6,45 +6,43 @@ use Exception;
 use App\Models\Personal;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\PersonalRequest;
 use App\Http\Resources\PersonalResource;
-use App\Http\Requests\UpdatePersonalRequest;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+
 
 class PersonalController extends Controller
 {
     public function list(Request $request)
     {
-        try {
-            $limit = (int) $request->limit;
-            $search = $request->search;
+        // try {
+        //     $limit = (int) $request->limit;
+        //     $search = $request->search;
 
-            $query = Personal::orderBy('id', 'desc');
+        //     $query = Personal::orderBy('id', 'desc');
 
-            if ($search) {
-                $query->where('name', 'LIKE', $search . '%');
-            }
+        //     if ($search) {
+        //         $query->where('name', 'LIKE', $search . '%');
+        //     }
 
-            $data = $limit ? $query->paginate($limit) : $query->get();
+        //     $data = $limit ? $query->paginate($limit) : $query->get();
 
-            $data = PersonalResource::collection($data);
+        //     $data = PersonalResource::collection($data);
 
-            $total = Personal::count();
+        //     $total = Personal::count();
 
-            return response()->json([
-                "status" => "OK! The request was successful",
-                "total" => $total,
-                "data" => $data
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'Bad Request!. The request is invalid.',
-                'message' => $e->getMessage()
-            ],400);
-        }
+        //     return response()->json([
+        //         "status" => "OK! The request was successful",
+        //         "total" => $total,
+        //         "data" => $data
+        //     ], 200);
+        // } catch (Exception $e) {
+        //     return response()->json([
+        //         'status' => 'Bad Request!. The request is invalid.',
+        //         'message' => $e->getMessage()
+        //     ],400);
+        // }
+
+        return response()->json(Personal::all());
     }
     public function create(Request $request)
     {
