@@ -26,34 +26,36 @@ class StudentController extends Controller
 {
     public function list(Request $request)
     {
-        try {
-            $limit = (int) $request->limit;
-            $search = $request->search;
+        // try {
+        //     $limit = (int) $request->limit;
+        //     $search = $request->search;
 
-            $query = Student::orderBy('id', 'desc');
+        //     $query = Student::orderBy('id', 'desc');
 
-            if ($search) {
-                $query->where('name', 'LIKE', $search . '%');
-            }
+        //     if ($search) {
+        //         $query->where('name', 'LIKE', $search . '%');
+        //     }
 
-            $data = $limit ? $query->paginate($limit) : $query->get();
+        //     $data = $limit ? $query->paginate($limit) : $query->get();
 
-            $data = StudentResource::collection($data);
+        //     $data = StudentResource::collection($data);
 
-            $total = Student::count();
+        //     $total = Student::count();
 
-            return response()->json([
-                "status" => "OK! The request was successful",
-                "total" => $total,
-                "data" => $data
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'Bad Request!. The request is invalid.',
-                'message' => $e->getMessage()
-            ],400);
-        }
+        //     return response()->json([
+        //         "status" => "OK! The request was successful",
+        //         "total" => $total,
+        //         "data" => $data
+        //     ], 200);
+        // } catch (Exception $e) {
+        //     return response()->json([
+        //         'status' => 'Bad Request!. The request is invalid.',
+        //         'message' => $e->getMessage()
+        //     ],400);
+        // }
+        return response()->json(Student::all());
     }
+
     public function create(Request $request)
     {
         try{

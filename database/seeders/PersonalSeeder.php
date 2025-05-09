@@ -15,16 +15,16 @@ class PersonalSeeder extends Seeder
     public function run(): void
     {
         $people = [
-            ['full_name' => 'Aung Aung',     'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100001', 'birth_date' => '1990-01-01', 'gender' => 'male'],
-            ['full_name' => 'Mya Mya',       'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100002', 'birth_date' => '1992-03-12', 'gender' => 'female'],
-            ['full_name' => 'Ko Ko',         'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100003', 'birth_date' => '1985-07-20', 'gender' => 'male'],
-            ['full_name' => 'Thuzar',        'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100004', 'birth_date' => '1999-12-12', 'gender' => 'female'],
-            ['full_name' => 'Htet Htet',     'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100005', 'birth_date' => '2001-05-06', 'gender' => 'female'],
-            ['full_name' => 'Zaw Zaw',       'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100006', 'birth_date' => '1994-08-08', 'gender' => 'male'],
-            ['full_name' => 'Khin Khin',     'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100007', 'birth_date' => '1997-09-18', 'gender' => 'female'],
-            ['full_name' => 'Moe Moe',       'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100008', 'birth_date' => '1988-04-30', 'gender' => 'female'],
-            ['full_name' => 'Tun Tun',       'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100009', 'birth_date' => '1995-06-25', 'gender' => 'male'],
-            ['full_name' => 'Nandar',        'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100010', 'birth_date' => '2000-10-10', 'gender' => 'female'],
+            ['full_name' => 'Aung Aung',     'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100001', 'birth_date' => '1990-01-01', 'gender' => 'male', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Mya Mya',       'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100002', 'birth_date' => '1992-03-12', 'gender' => 'female', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Ko Ko',         'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100003', 'birth_date' => '1985-07-20', 'gender' => 'male', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Thuzar',        'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100004', 'birth_date' => '1999-12-12', 'gender' => 'female', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Htet Htet',     'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100005', 'birth_date' => '2001-05-06', 'gender' => 'female', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Zaw Zaw',       'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100006', 'birth_date' => '1994-08-08', 'gender' => 'male', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Khin Khin',     'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100007', 'birth_date' => '1997-09-18', 'gender' => 'female', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Moe Moe',       'region_code' => '02', 'township_code' => 'YGN',     'citizenship' => 'N', 'serial_number' => '100008', 'birth_date' => '1988-04-30', 'gender' => 'female', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Tun Tun',       'region_code' => '01', 'township_code' => 'THAGAKA', 'citizenship' => 'N', 'serial_number' => '100009', 'birth_date' => '1995-06-25', 'gender' => 'male', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
+            ['full_name' => 'Nandar',        'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100010', 'birth_date' => '2000-10-10', 'gender' => 'female', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'O+'],
         ];
 
         foreach ($people as $person) {

@@ -21,6 +21,10 @@ return new class extends Migration
             $table->string('township_code',20);
             $table->string('citizenship',5);
             $table->string('serial_number',10);
+            $table->string('nationality')->nullable();
+            $table->string('religion')->nullable();
+            $table->enum('blood_type', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])->nullable();
+            
             $table->softDeletes();
             $table->timestamps();
 

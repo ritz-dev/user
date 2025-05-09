@@ -11,14 +11,17 @@ class Personal extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'slug',
         'full_name',
+        'birth_date',
+        'gender',
         'region_code',
         'township_code',
         'citizenship',
         'serial_number',
-        'birth_date',
-        'slug',
-        'gender',
+        'nationality',
+        'religion',
+        'blood_type'
     ];
 
     protected static function boot()

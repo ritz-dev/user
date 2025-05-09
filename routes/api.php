@@ -9,10 +9,6 @@ use App\Http\Controllers\APIs\PersonalController;
 
 Route::prefix('personals')->group(function(){
     Route::post('list',[PersonalController::class,'list']);
-    Route::post('create',[PersonalController::class,'create']);
-    Route::post('detail',[PersonalController::class,'detail']);
-    Route::put('update',[PersonalController::class,'update']);
-    Route::post('delete',[PersonalController::class,'delete']);
 });
 
 Route::prefix('employees')->group(function(){
