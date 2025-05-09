@@ -3,29 +3,21 @@
 namespace App\Http\Controllers\APIs;
 
 use Exception;
-use Carbon\Carbon;
 use App\Models\Student;
+use App\Models\Guardian;
 use App\Models\Personal;
-use App\Models\ParentInfo;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use App\Models\StudentSection;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StudentRequest;
 use App\Http\Resources\StudentResource;
-use App\Http\Requests\UpdateStudentRequest;
-use App\Http\Resources\StudentSectionResource;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 
 class StudentController extends Controller
 {
-    public function list(Request $request)
+    public function index(Request $request)
     {
+        return response()->json(Student::with('personal','guardians')->get());
         // try {
         //     $limit = (int) $request->limit;
         //     $search = $request->search;
@@ -53,219 +45,309 @@ class StudentController extends Controller
         //         'message' => $e->getMessage()
         //     ],400);
         // }
-        return response()->json(Student::with('personal')->all());
     }
 
-    public function create(Request $request)
+    public function store(Request $request)
     {
-        try{
-            $request->validate([
-                'personalId' => 'nullable|exists:personals,id',
-                'name' => 'required|string',
-                'studentCode' => 'required|string',
-                'address' => 'required|string',
-                'email' => 'required|email|unique:students,email',
-                'phonenumber' => 'required|unique:students,phonenumber',
-                'pob' => 'required|string',
-                'nationality' => 'required|string',
-                'religion' => 'required|string',
-                'bloodType' => 'required|in:A,B,AB,O',
-                'status' => 'required|in:active,graduated,suspended,dropped',
-                'academicLevel' => 'required',
-                'academicYear' => 'required',
-                'enrollmentDate' => 'required|date',
-                'graduationDate' => 'required|date'
+        $validated = $request->validate([
+        //student
+        'student_number' => 'required|string|unique:students,student_number',
+        'registration_number' => 'nullable|string',
+        'school_name' => 'required|string',
+        'school_code' => 'nullable|string',
+        'email' => 'nullable|email',
+        'phone' => 'nullable|string',
+        'address' => 'nullable|string',
+        'status' => 'required|in:enrolled,graduated,suspended,inactive',
+        'graduation_date' => 'nullable|date',
+        'admission_date' => 'nullable|date',
+
+        // personal
+        'full_name' => 'required|string',
+        'birth_date' => 'required|date',
+        'gender' => 'required|in:male,female',
+        'region_code' => 'required|string',
+        'township_code' => 'required|string',
+        'citizenship' => 'required|string',
+        'serial_number' => 'required|string',
+        'nationality' => 'nullable|string',
+        'religion' => 'nullable|string',
+        'blood_type' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            // Create the personal record
+            $personal = Personal::create([
+                'full_name' => $request->full_name,
+                'birth_date' => $request->birth_date,
+                'gender' => $request->gender,
+                'region_code' => $request->region_code,
+                'township_code' => $request->township_code,
+                'citizenship' => $request->citizenship,
+                'serial_number' => $request->serial_number,
+                'nationality' => $request->nationality,
+                'religion' => $request->religion,
+                'blood_type' => $request->blood_type,
             ]);
 
-            if($request->personalId){
-                $personal = Personal::where('slug',$request->personalId)->firstOrFail();
-            }else{
-                $request->validate([
-                    "name" => "required|string",
-                    "gender" => "required|string",
-                    "dob" => "required|date|before:today",
-                    "address" => "required|string",
-                    "state" => "nullable",
-                    "district" => "nullable",
-                    "registerCode" => "nullable",
-                ]);
+            // Create the student record
+            $student = Student::create([
+                'personal_id' => $personal->id,
+                'student_number' => $request->student_number,
+                'registration_number' => $request->registration_number,
+                'school_name' => $request->school_name,
+                'school_code' => $request->school_code,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'status' => $request->status,
+                'graduation_date' => $request->graduation_date,
+                'admission_date' => $request->admission_date,
+            ]);
 
-                $data = $request->only(['state', 'district', 'registerCode']);
-                $filled = array_filter($data);
+            // Create guardians if provided
+            foreach ($request->guardian as $guardianData) {
 
-                if (count($filled) > 0 && count($filled) < count($data)) {
-                    return response()->json([
-                        'errors' => [
-                            'state' => ['All fields (state, district, register_code) must be null or filled together.']
-                        ]
-                    ], 422);
+                // Check if personal record for guardian exists, if not, create it
+                $personalGuardian = Personal::where('region_code', $guardianData['region_code'])
+                    ->where('township_code', $guardianData['township_code'])
+                    ->where('citizenship', $guardianData['citizenship'])
+                    ->where('serial_number', $guardianData['serial_number'])
+                    ->first();
+
+                if (!$personalGuardian) {
+                    // Create a new personal record for the guardian if NRC fields do not exist
+                    $personalGuardian = Personal::create([
+                        'full_name' => $guardianData['full_name'],
+                        'birth_date' => $guardianData['birth_date'],
+                        'gender' => $guardianData['gender'],
+                        'region_code' => $guardianData['region_code'],
+                        'township_code' => $guardianData['township_code'],
+                        'citizenship' => $guardianData['citizenship'],
+                        'serial_number' => $guardianData['serial_number'],
+                        'nationality' => $guardianData['nationality'] ?? null,
+                        'religion' => $guardianData['religion'] ?? null,
+                        'blood_type' => $guardianData['blood_type'] ?? null,
+                    ]);
                 }
 
-                $personal = new Personal;
-                $personal->slug = Str::uuid();
-                $personal->name = $request->name;
-                $personal->gender = $request->gender;
-                $personal->dob = $request->dob;
-                $personal->address = $request->address;
-                $personal->state = $request->state;
-                $personal->district = $request->district;
-                $personal->register_code = $request->registerCode;
-                $personal->save();
+                // Create guardian record and associate it with student and personal
+                Guardian::create([
+                    'student_id' => $student->id,
+                    'personal_id' => $personalGuardian->id,
+                    'relation' => $guardianData['relation'],
+                    'occupation' => $guardianData['occupation'] ?? null,
+                    'phone' => $guardianData['phone'] ?? null,
+                    'email' => $guardianData['email'] ?? null,
+                ]);
             }
 
-            $student = new Student;
-            $student->slug = Str::uuid();
-            $student->personal_id = $personal->id;
-            $student->name = $request->name;
-            $student->student_code = $request->studentCode;
-            $student->address = $request->address;
-            $student->email = $request->email;
-            $student->phonenumber = $request->phonenumber;
-            $student->pob = $request->pob;
-            $student->nationality =$request->nationality;
-            $student->religion =$request->religion;
-            $student->blood_type =$request->bloodType;
-            $student->status =$request->status;
-            $student->academic_level =$request->academicLevel;
-            $student->academic_year =$request->academicYear;
-            $student->enrollment_date =$request->enrollmentDate;
-            $student->graduation_date =null;
-            $student->save();
+            DB::commit();
 
-            return response()->json([
-                "status" => "OK! The request was successful",
-            ],200);
+            return response()->json(['message' => 'Student created successfully'], 201);
 
-        }catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'Validation error.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while adding.',
-                'message' => $e->getMessage()
-            ], 500);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Failed to create student: ' . $e->getMessage()], 500);
         }
     }
 
-    public function detail(Request $request)
+    public function show(Request $request)
     {
-        try {
-            $request->validate([
-                'slug' => 'required|exists:students,slug'
-            ]);
+        // Validate the incoming request to ensure the 'slug' is provided
+        $validated = $request->validate([
+            'slug' => 'required|string|exists:students,slug',
+        ]);
 
-            $data = Student::where('slug',$request->slug)->firstOrFail();
-            $student = new StudentResource($data);
-            return response()->json($student,200);
+        // Retrieve the student using the slug
+        $student = Student::with(['guardians', 'personal']) // Include related models if needed
+            ->where('slug', $validated['slug'])
+            ->first();
 
-        }catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while showing.',
-                'message' => $e->getMessage()
-            ], 500);
+        // If the student is not found, return a 404 error
+        if (!$student) {
+            return response()->json(['error' => 'Student not found'], 404);
         }
+
+        // Return the student data
+        return response()->json($student);
     }
 
     public function update(Request $request)
     {
-        try{
+        // Validate the incoming request data
+        $validated = $request->validate([
+            'slug' => 'required|string|exists:students,slug',
+            'student_number' => 'nullable|string|unique:students,student_number',
+            'school_name' => 'nullable|string',
+            'school_code' => 'nullable|string',
+            'email' => 'nullable|email',
+            'phone' => 'nullable|string',
+            'address' => 'nullable|string',
+            'status' => 'nullable|in:enrolled,graduated,suspended,inactive',
+            'graduation_date' => 'nullable|date',
+            'admission_date' => 'nullable|date',
 
-            $request->validate([
-                'name' => 'required|string',
-                'studentCode' => [
-                    Rule::unique('students','student_code')->ignore($request->slug,'slug'),
-                ],
-                'address' => 'required|string',
-                'email' => 'required|email',
-                'phonenumber' => 'required',
-                'pob' => 'required|string',
-                'nationality' => 'required|string',
-                'religion' => 'required|string',
-                'bloodType' => 'required|in:A,B,AB,O',
-                'status' => 'required|in:active,graduated,suspended,dropped',
-                'academicLevel' => 'required',
-                'academicYear' => 'required',
-                'enrollmentDate' => 'required|date',
-                'graduationDate' => 'required|date'
-            ]);
+            // Student personal
+            'personal.full_name' => 'nullable|string',
+            'personal.birth_date' => 'nullable|date',
+            'personal.gender' => 'nullable|in:male,female',
+            'personal.region_code' => 'nullable|string',
+            'personal.township_code' => 'nullable|string',
+            'personal.citizenship' => 'nullable|string',
+            'personal.serial_number' => 'nullable|string',
+            'personal.nationality' => 'nullable|string',
+            'personal.religion' => 'nullable|string',
+            'personal.blood_type' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
 
-            $student = Student::where('slug',$request->slug)->firstOrFail();
-            $student->name = $request->name;
-            $student->student_code = $request->studentCode;
-            $student->address = $request->address;
-            $student->email = $request->email;
-            $student->phonenumber = $request->phonenumber;
-            $student->pob = $request->pob;
-            $student->nationality =$request->nationality;
-            $student->religion =$request->religion;
-            $student->blood_type =$request->bloodType;
-            $student->status =$request->status;
-            $student->academic_level =$request->academicLevel;
-            $student->academic_year =$request->academicYear;
-            $student->enrollment_date =$request->enrollmentDate;
-            $student->graduation_date =null;
-            $student->save();
+        ]);
 
-            $student = new StudentResource($student);
+        // Retrieve the student using the slug
+        $student = Student::where('slug', $validated['slug'])->first();
 
-            return response()->json($student,200);
-
-        }catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'Validation error.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while updating.',
-                'message' => $e->getMessage()
-            ], 500);
+        if (!$student) {
+            return response()->json(['error' => 'Student not found'], 404);
         }
-    }
 
-    public function delete(Request $request)
-    {
+        DB::beginTransaction();
+
         try {
-            $student = Student::where('slug',$request->slug)->firstOrFail();
-            $student->delete();
-
-            return response()->json([
-                "status" => "OK! Deleting Successfully."
-            ],200);
-        }catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while deleting.',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function bySection(Request $request)
-    {
-        try{
-            $limit = (int) $request->limit;
-            $section_id = $request->sectionId;
-
-            $query = StudentSection::where('section_id',$section_id)->orderBy('id','desc');
-            $data = $limit ? $query->paginate($limit) : $query->get();
-
-            $total = StudentSection::count();
-
-            $student_sections = StudentSectionResource::collection($data);
-
-            return response()->json([
-                "status" => "OK! The request was successful",
-                "total" => $total,
-                "data" => $student_sections
+            // Update the student details
+            $student->update([
+                'student_number' => $request->student_number ?? $student->student_number,
+                'school_name' => $request->school_name ?? $student->school_name,
+                'school_code' => $request->school_code ?? $student->school_code,
+                'email' => $request->email ?? $student->email,
+                'phone' => $request->phone ?? $student->phone,
+                'address' => $request->address ?? $student->address,
+                'status' => $request->status ?? $student->status,
+                'graduation_date' => $request->graduation_date ?? $student->graduation_date,
+                'admission_date' => $request->admission_date ?? $student->admission_date,
             ]);
 
-        }catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while showing.',
-                'message' => $e->getMessage()
-            ], 500);
+            // Update the student's personal details if provided
+            if ($request->has('personal')) {
+                $personal = $student->personal; // Assuming there's a one-to-one relation
+                $personal->update([
+                    'full_name' => $request->personal['full_name'] ?? $personal->full_name,
+                    'birth_date' => $request->personal['birth_date'] ?? $personal->birth_date,
+                    'gender' => $request->personal['gender'] ?? $personal->gender,
+                    'region_code' => $request->personal['region_code'] ?? $personal->region_code,
+                    'township_code' => $request->personal['township_code'] ?? $personal->township_code,
+                    'citizenship' => $request->personal['citizenship'] ?? $personal->citizenship,
+                    'serial_number' => $request->personal['serial_number'] ?? $personal->serial_number,
+                    'nationality' => $request->personal['nationality'] ?? $personal->nationality,
+                    'religion' => $request->personal['religion'] ?? $personal->religion,
+                    'blood_type' => $request->personal['blood_type'] ?? $personal->blood_type,
+                ]);
+            }
+
+            // Update the guardian details if provided
+            if ($request->has('guardian')) {
+                foreach ($request->guardian as $guardianData) {
+                    // If a guardian already exists, update, else create
+                    $guardian = $student->guardians()->where('personal_id', $guardianData['personal_id'])->first();
+
+                    if ($guardian) {
+                        $guardian->update([
+                            'relation' => $guardianData['relation'] ?? $guardian->relation,
+                            'occupation' => $guardianData['occupation'] ?? $guardian->occupation,
+                            'phone' => $guardianData['phone'] ?? $guardian->phone,
+                            'email' => $guardianData['email'] ?? $guardian->email,
+                        ]);
+                    } else {
+                        // If no guardian exists, create a new one
+                        $personalGuardian = Personal::create([
+                            'slug' => uniqid(),
+                            'full_name' => $guardianData['personal']['full_name'],
+                            'birth_date' => $guardianData['personal']['birth_date'],
+                            'gender' => $guardianData['personal']['gender'],
+                            'region_code' => $guardianData['personal']['region_code'],
+                            'township_code' => $guardianData['personal']['township_code'],
+                            'citizenship' => $guardianData['personal']['citizenship'],
+                            'serial_number' => $guardianData['personal']['serial_number'],
+                            'nationality' => $guardianData['personal']['nationality'] ?? null,
+                            'religion' => $guardianData['personal']['religion'] ?? null,
+                            'blood_type' => $guardianData['personal']['blood_type'] ?? null,
+                        ]);
+
+                        Guardian::create([
+                            'student_id' => $student->id,
+                            'personal_id' => $personalGuardian->id,
+                            'relation' => $guardianData['relation'],
+                            'occupation' => $guardianData['occupation'] ?? null,
+                            'phone' => $guardianData['phone'] ?? null,
+                            'email' => $guardianData['email'] ?? null,
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return response()->json(['message' => 'Student updated successfully'], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Failed to update student: ' . $e->getMessage()], 500);
         }
     }
+
+    public function handleAction(Request $request)
+    {
+        $request->validate([
+            'slug' => 'required|string|exists:students,slug',
+            'action' => 'required|string|in:enrolled,graduated,suspended,inactive,restore,delete',
+        ]);
+
+        $slug = $request->input('slug');
+        $action = $request->input('action');
+
+        // Support soft-deleted models as well
+        $student = Student::withTrashed()->where('slug', $slug)->firstOrFail();
+
+        switch ($action) {
+            case 'enrolled':
+                $student->status = 'enrolled';
+                $student->save();
+                return response()->json(['message' => 'Student status set to enrolled']);
+
+            case 'graduated':
+                $student->status = 'graduated';
+                $student->save();
+                return response()->json(['message' => 'Student graduated']);
+
+            case 'suspended':
+                $student->status = 'suspended';
+                $student->save();
+                return response()->json(['message' => 'Student suspended']);
+
+            case 'inactive':
+                $student->status = 'inactive';
+                $student->save();
+                return response()->json(['message' => 'Student deactivated']);
+
+            case 'delete':
+                $student->status = 'inactive';
+                $student->save();
+                $student->delete();
+                return response()->json(['message' => 'Student soft-deleted']);
+
+            case 'restore':
+                if ($student->trashed()) {
+                    $student->restore();
+                    $student->status = 'enrolled'; // or whatever is appropriate
+                    $student->save();
+                    return response()->json(['message' => 'Student restored']);
+                }
+                return response()->json(['message' => 'Student is not deleted'], 400);
+
+            default:
+                return response()->json(['message' => 'Invalid action'], 400);
+        }
+    }
+   
 }

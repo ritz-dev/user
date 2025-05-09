@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('students', function (Blueprint $table) {
             $table->id();
-            $table->string('slug');
+            $table->string('slug')->uniqid();
             $table->foreignId('personal_id')->constrained('personals')->onDelete('cascade');
             $table->string('student_number')->unique();
-            $table->string('registration_number')->nullable();
+            $table->string('registration_number')->unique()->nullable();
             $table->string('school_name');
             $table->string('school_code')->nullable();
-            $table->string('email')->nullable();
-            $table->string('phone')->nullable();
+            $table->string('email')->unique()->nullable();
+            $table->string('phone')->unique()->nullable();
             $table->string('address')->nullable();
             $table->enum('status', ['enrolled', 'graduated', 'suspended', 'inactive'])->default('enrolled');
             $table->date('graduation_date')->nullable();
@@ -36,5 +36,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('students');
+        
     }
 };

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Personal;
+use Ramsey\Uuid\Guid\Guid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -28,14 +30,32 @@ class Student extends Model
         'status' => 'enrolled',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if(empty($model->slug)){
+                $model->slug = (string) Guid::uuid4();
+            }
+        });
+    }
+
     public function personal()
     {
         return $this->belongsTo(Personal::class, 'personal_id');
+    }
+
+    public function guardians()
+    {
+        return $this->hasMany(Guardian::class);
     }
 
     public function getIsGraduatedAttribute()
     {
         return $this->current_status === 'graduated';
     }
+
+    
 
 }

@@ -10,10 +10,9 @@ use App\Http\Resources\PersonalResource;
 
 class PersonalController extends Controller
 {
-    public function list(Request $request)
+    public function index(Request $request)
     {
         return response()->json(Personal::all());
-
         // try {
         //     $limit = (int) $request->limit;
         //     $search = $request->search;

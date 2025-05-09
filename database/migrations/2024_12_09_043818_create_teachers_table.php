@@ -13,19 +13,19 @@ return new class extends Migration
     {
         Schema::create('teachers', function (Blueprint $table) {
             $table->id();
-            $table->string('slug');
-            $table->unsignedBigInteger('personal_id');
-            $table->foreign('personal_id')->references('id')->on('personals')->onDelete('cascade');
+            $table->uuid('slug')->unique();
+            $table->foreignId('personal_id')->constrained('personals');
             $table->string('teacher_code')->unique();
             $table->string('email')->unique()->nullable();
-            $table->string('phonenumber')->unique();
-            $table->string('department');
+            $table->string('phone')->unique()->nullable();
+            $table->string('address')->nullable();
+            $table->string('qualification')->nullable();
+            $table->string('subject')->nullable();
+            $table->integer('experience_years')->default(0);
             $table->decimal('salary',10,2);
             $table->date('hire_date');
-            $table->enum('status',['active', 'inactive', 'supspened', 'disabled'])->default('active');
+            $table->enum('status', ['active', 'resigned', 'on_leave'])->default('active');
             $table->enum('employment_type', ['full-time', 'part-time', 'contract'])->default('full-time');
-            $table->string('specialization')->nullable();
-            $table->string('designation')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

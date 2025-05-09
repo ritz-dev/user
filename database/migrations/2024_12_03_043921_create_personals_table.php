@@ -17,10 +17,10 @@ return new class extends Migration
             $table->string('full_name');
             $table->date('birth_date');
             $table->enum('gender',['male','female']);
-            $table->string('region_code',3);
-            $table->string('township_code',20);
-            $table->string('citizenship',5);
-            $table->string('serial_number',10);
+            $table->string('region_code');
+            $table->string('township_code');
+            $table->string('citizenship');
+            $table->string('serial_number');
             $table->string('nationality')->nullable();
             $table->string('religion')->nullable();
             $table->enum('blood_type', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])->nullable();
