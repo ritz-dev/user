@@ -53,7 +53,7 @@ class StudentController extends Controller
         //         'message' => $e->getMessage()
         //     ],400);
         // }
-        return response()->json(Student::all());
+        return response()->json(Student::with('personal')->all());
     }
 
     public function create(Request $request)

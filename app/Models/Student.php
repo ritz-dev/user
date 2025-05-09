@@ -28,6 +28,11 @@ class Student extends Model
         'status' => 'enrolled',
     ];
 
+    public function personal()
+    {
+        return $this->belongsTo(Personal::class, 'personal_id');
+    }
+
     public function getIsGraduatedAttribute()
     {
         return $this->current_status === 'graduated';
