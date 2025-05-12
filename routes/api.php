@@ -17,24 +17,21 @@ Route::prefix('students')->group(function(){
     Route::post('show',[StudentController::class,'show']);
     Route::post('update',[StudentController::class,'update']);
     Route::post('action',[StudentController::class,'handleAction']);
-    // Route::post('detail',[StudentController::class,'detail']);
-    // Route::put('update',[StudentController::class,'update']);
-    // Route::post('delete',[StudentController::class,'delete']);
     // Route::post('by-section',[StudentController::class,'bySection']);
 });
 
 Route::prefix('teachers')->group(function(){
     Route::post('/',[TeacherController::class,'index']);
-    Route::post('create',[TeacherController::class,'create']);
-    Route::post('detail',[TeacherController::class,'detail']);
+    Route::post('store',[TeacherController::class,'store']);
+    Route::post('show',[TeacherController::class,'show']);
     Route::put('update',[TeacherController::class,'update']);
-    Route::post('delete',[TeacherController::class,'delete']);
+    Route::post('action',[TeacherController::class,'handleAction']);
 });
 
 Route::prefix('employees')->group(function(){
-    Route::post('list',[EmployeeController::class,'list']);
-    Route::post('create',[EmployeeController::class,'create']);
-    Route::post('detail',[EmployeeController::class,'detail']);
+    Route::post('/',[EmployeeController::class,'index']);
+    Route::post('store',[EmployeeController::class,'store']);
+    Route::post('show',[EmployeeController::class,'show']);
     Route::put('update',[EmployeeController::class,'update']);
-    Route::post('delete',[EmployeeController::class,'delete']);
+    Route::post('action',[EmployeeController::class,'handleAction']);
 });

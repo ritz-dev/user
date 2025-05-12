@@ -13,21 +13,23 @@ return new class extends Migration
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
-            $table->string('slug');
-            $table->unsignedBigInteger('personal_id');
-            $table->foreign('personal_id')->references('id')->on('personals')->onDelete('cascade');
+            $table->uuid('slug')->unique();
+            $table->foreignId('personal_id')->constrained('personals')->onDelete('cascade');
+            $table->string('employee_code')->unique();
             $table->string('email')->unique()->nullable();
-            $table->string('phonenumber')->unique();
-            $table->string('department');
-            $table->decimal('salary',10,2);
-            $table->date('hire_date');
-            $table->enum('status',['active', 'inactive', 'supspened', 'disabled'])->default('active');
+            $table->string('phone')->unique()->nullable();
+            $table->string('address')->nullable();
+            $table->string('position')->nullable(); // e.g., Accountant, Janitor, Librarian
+            $table->string('department')->nullable(); // e.g., Finance, Maintenance, Library
             $table->enum('employment_type', ['full-time', 'part-time', 'contract'])->default('full-time');
-            $table->rememberToken();
+            $table->date('hire_date');
+            $table->date('resign_date')->nullable();
+            $table->integer('experience_years')->default(0);
+            $table->decimal('salary', 10, 2)->default(0);
+            $table->enum('status', ['active', 'resigned', 'on_leave', 'terminated'])->default('active');
             $table->softDeletes();
             $table->timestamps();
         });
-
     }
 
     /**

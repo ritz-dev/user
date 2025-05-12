@@ -43,7 +43,7 @@ class Student extends Model
 
     public function personal()
     {
-        return $this->belongsTo(Personal::class, 'personal_id');
+        return $this->belongsTo(Personal::class);
     }
 
     public function guardians()

@@ -3,220 +3,266 @@
 namespace App\Http\Controllers\APIs;
 
 use Exception;
-use Carbon\Carbon;
-use App\Models\Role;
 use App\Models\Teacher;
-use App\Models\Employee;
 use App\Models\Personal;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\TeacherRequest;
 use App\Http\Resources\TeacherResource;
-use App\Http\Requests\UpdateTeacherRequest;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-
 
 class TeacherController extends Controller
 {
-    public function list(Request $request)
+    public function index(Request $request)
     {
-        try {
-            $limit = (int) $request->limit;
-            $search = $request->search;
+        return response()->json(Teacher::with('personal')->get());
+        // try {
+        //     $limit = (int) $request->limit;
+        //     $search = $request->search;
 
-            $query = Teacher::orderBy('id', 'desc');
+        //     $query = Teacher::orderBy('id', 'desc');
 
-            if ($search) {
-                $query->where('name', 'LIKE', $search . '%');
-            }
+        //     if ($search) {
+        //         $query->where('name', 'LIKE', $search . '%');
+        //     }
 
-            $data = $limit ? $query->paginate($limit) : $query->get();
+        //     $data = $limit ? $query->paginate($limit) : $query->get();
 
-            $data = TeacherResource::collection($data);
+        //     $data = TeacherResource::collection($data);
 
-            $total = Teacher::count();
+        //     $total = Teacher::count();
 
-            return response()->json([
-                "status" => "OK! The request was successful",
-                "total" => $total,
-                "data" => $data
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'Bad Request!. The request is invalid.',
-                'message' => $e->getMessage()
-            ],400);
-        }
+        //     return response()->json([
+        //         "status" => "OK! The request was successful",
+        //         "total" => $total,
+        //         "data" => $data
+        //     ], 200);
+        // } catch (Exception $e) {
+        //     return response()->json([
+        //         'status' => 'Bad Request!. The request is invalid.',
+        //         'message' => $e->getMessage()
+        //     ],400);
+        // }
     }
-    public function create(Request $request)
-    {
-        try{
-            $request->validate([
-                'personalId' => 'nullable|exists:personals,slug',
-                'email' => 'required|email',
-                'teacherCode' => 'required|string',
-                'phonenumber' => 'required',
-                'department' => 'required|string',
-                'salary' => 'required|numeric',
-                'hireDate' => 'required|date',
-                'status' => 'required|in:active, inactive, supspened, disabled',
-                'employmentType' => 'required|in:full-time, part-time, contract',
-                'specialization' => 'required',
-                'designation' => 'required'
-            ]);
 
-            if($request->personalId){
-                $personal = Personal::where('slug',$request->personalId)->firstOrFail();
-            }else{
-                $request->validate([
-                    "name" => "required|string",
-                    "gender" => "required|string",
-                    "dob" => "required|date|before:today",
-                    "address" => "required|string",
-                    "state" => "nullable",
-                    "district" => "nullable",
-                    "registerCode" => "nullable",
+    public function store(Request $request)
+    {
+        $request->validate([
+            // Personal fields
+            'full_name' => 'required|string|max:255',
+            'birth_date' => 'required|date',
+            'gender' => 'required|in:male,female,other',
+            'region_code' => 'required|string|max:10',
+            'township_code' => 'required|string|max:10',
+            'citizenship' => 'required|string|max:10',
+            'serial_number' => 'required|string|max:20',
+            // Teacher fields
+            'teacher_code' => 'required|string|unique:teachers,teacher_code',
+            'email' => 'nullable|email|unique:teachers,email',
+            'phone' => 'nullable|string|unique:teachers,phone',
+            'address' => 'nullable|string',
+            'qualification' => 'nullable|string',
+            'subject' => 'nullable|string',
+            'experience_years' => 'nullable|integer|min:0',
+            'salary' => 'required|numeric|min:0',
+            'hire_date' => 'required|date',
+            'status' => 'nullable|in:active,resigned,on_leave',
+            'employment_type' => 'nullable|in:full-time,part-time,contract',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $personal = Personal::where('region_code', $request->region_code)
+                ->where('township_code', $request->township_code)
+                ->where('citizenship', $request->citizenship)
+                ->where('serial_number', $request->serial_number)
+                ->first();
+       
+            if (!$personal) {
+                $personal = Personal::create([
+                    'full_name' => $request->full_name,
+                    'birth_date' => $request->birth_date,
+                    'gender' => $request->gender,
+                    'region_code' => $request->region_code,
+                    'township_code' => $request->township_code,
+                    'citizenship' => $request->citizenship,
+                    'serial_number' => $request->serial_number,
                 ]);
-
-                $data = $request->only(['state', 'district', 'registerCode']);
-                $filled = array_filter($data);
-
-                if (count($filled) > 0 && count($filled) < count($data)) {
-                    return response()->json([
-                        'errors' => [
-                            'state' => ['All fields (state, district, register_code) must be null or filled together.']
-                        ]
-                    ], 422);
+            } else {
+                // Check if personal already used by a teacher
+                $existingTeacher = Teacher::where('personal_id', $personal->id)->first();
+                if ($existingTeacher) {
+                    return response()->json(['error' => 'This personal is already assigned to another teacher.'], 409);
                 }
-
-                $personal = new Personal;
-                $personal->slug = Str::uuid();
-                $personal->name = $request->name;
-                $personal->gender = $request->gender;
-                $personal->dob = $request->dob;
-                $personal->address = $request->address;
-                $personal->state = $request->state;
-                $personal->district = $request->district;
-                $personal->register_code = $request->registerCode;
-                $personal->save();
             }
 
-            $teacher = new Teacher;
-            $teacher->slug = Str::uuid();
-            $teacher->personal_id = $personal->id;
-            $teacher->email = $request->email;
-            $teacher->teacher_code = $request->teacherCode;
-            $teacher->phonenumber = $request->phonenumber;
-            $teacher->department = $request->department;
-            $teacher->salary = $request->salary;
-            $teacher->hire_date = $request->hireDate;
-            $teacher->status = $request->status;
-            $teacher->employment_type = $request->employmentType;
-            $teacher->specialization = $request->specialization;
-            $teacher->designation = $request->designation;
-            $teacher->save();
-
-            return response()->json([
-                "status" => "OK! The request was successful",
-            ],200);
-
-        }catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'Validation error.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while adding.',
-                'message' => $e->getMessage()
-            ], 500);
+            $teacher = Teacher::create([
+                'personal_id' => $personal->id,
+                'teacher_code' => $request->teacher_code,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'qualification' => $request->qualification,
+                'subject' => $request->subject,
+                'experience_years' => $request->experience_years ?? 0,
+                'salary' => $request->salary,
+                'hire_date' => $request->hire_date,
+                'status' => $request->status ?? 'active',
+                'employment_type' => $request->employment_type ?? 'full-time',
+            ]);
+    
+            DB::commit();
+    
+            return response()->json(['message' => 'Teacher created successfully.', 'teacher' => $teacher], 201);
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Failed to create teacher: ' . $e->getMessage()], 500);
         }
     }
-    public function detail(Request $request)
+
+    public function show(Request $request)
     {
-        try {
-            $request->validate([
-                'slug' => 'required|exists:teachers,slug'
-            ]);
+        // Validate the incoming request to ensure the 'slug' is provided
+        $validated = $request->validate([
+            'slug' => 'required|string|exists:teachers,slug',
+        ]);
 
-            $data = Teacher::where('slug',$request->slug)->firstOrFail();
-            $teacher = new TeacherResource($data);
-            return response()->json($teacher,200);
+        // Retrieve the student using the slug
+        $teacher = Teacher::with(['personal']) // Include related models if needed
+            ->where('slug', $validated['slug'])
+            ->first();
 
-        }catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while showing.',
-                'message' => $e->getMessage()
-            ], 500);
+        // If the student is not found, return a 404 error
+        if (!$teacher) {
+            return response()->json(['error' => 'Teacher not found'], 404);
         }
+
+        // Return the student data
+        return response()->json($teacher);
     }
 
     public function update(Request $request)
     {
-        try{
-            $request->validate([
-                'email' => 'required|email',
-                'teacherCode' => [
-                    Rule::unique('teachers','teacher_code')->ignore($request->slug,'slug'),
-                ],
-                'phonenumber' => 'required',
-                'department' => 'required|string',
-                'salary' => 'required|numeric',
-                'hireDate' => 'required|date',
-                'status' => 'required|in:active, inactive, supspened, disabled',
-                'employmentType' => 'required|in:full-time, part-time, contract',
-                'specialization' => 'required',
-                'designation' => 'required'
+        // Validate the incoming request
+        $request->validate([
+            // Personal fields
+            'full_name' => 'required|string|max:255',
+            'birth_date' => 'required|date',
+            'gender' => 'required|in:male,female,other',
+            'region_code' => 'required|string|max:10',
+            'township_code' => 'required|string|max:10',
+            'citizenship' => 'required|string|max:10',
+            'serial_number' => 'required|string|max:20',
+
+            // Teacher fields
+            'teacher_code' => "required|string|unique:teachers,teacher_code,$id",
+            'email' => "nullable|email|unique:teachers,email,$id",
+            'phone' => "nullable|string|unique:teachers,phone,$id",
+            'address' => 'nullable|string',
+            'qualification' => 'nullable|string',
+            'subject' => 'nullable|string',
+            'experience_years' => 'nullable|integer|min:0',
+            'salary' => 'required|numeric|min:0',
+            'hire_date' => 'required|date',
+            'status' => 'nullable|in:active,resigned,on_leave',
+            'employment_type' => 'nullable|in:full-time,part-time,contract',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $teacher = Teacher::findOrFail($id);
+            $personal = $teacher->personal;
+
+            // Update personal data
+            $personal->update([
+                'full_name' => $request->full_name,
+                'birth_date' => $request->birth_date,
+                'gender' => $request->gender,
+                'region_code' => $request->region_code,
+                'township_code' => $request->township_code,
+                'citizenship' => $request->citizenship,
+                'serial_number' => $request->serial_number,
             ]);
 
-            $teacher = Teacher::where('slug',$request->slug)->firstOrFail();
-            $teacher->email = $request->email;
-            $teacher->teacher_code = $request->teacherCode;
-            $teacher->phonenumber = $request->phonenumber;
-            $teacher->department = $request->department;
-            $teacher->salary = $request->salary;
-            $teacher->hire_date = $request->hireDate;
-            $teacher->status = $request->status;
-            $teacher->employment_type = $request->employmentType;
-            $teacher->specialization = $request->specialization;
-            $teacher->designation = $request->designation;
-            $teacher->save();
+            // Update teacher data
+            $teacher->update([
+                'teacher_code' => $request->teacher_code,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'qualification' => $request->qualification,
+                'subject' => $request->subject,
+                'experience_years' => $request->experience_years ?? 0,
+                'salary' => $request->salary,
+                'hire_date' => $request->hire_date,
+                'status' => $request->status ?? 'active',
+                'employment_type' => $request->employment_type ?? 'full-time',
+            ]);
 
-            $teacher = new TeacherResource($teacher);
+            DB::commit();
 
-            return response()->json($teacher,200);
-
-        }catch (ValidationException $e) {
             return response()->json([
-                'status' => 'Validation error.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (Exception $e) {
+                'message' => 'Teacher updated successfully.',
+                'teacher' => $teacher->fresh('personal'),
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
-                'status' => 'An error occurred while adding.',
-                'message' => $e->getMessage()
+                'error' => 'Failed to update teacher: ' . $e->getMessage(),
             ], 500);
         }
     }
-    public function delete(Request $request)
+
+    public function handleAction(Request $request)
     {
-        try {
-            $teacher = Teacher::where('slug',$request->slug)->firstOrFail();
-            $teacher->delete();
+        $request->validate([
+            'slug' => 'required|string|exists:teachers,slug',
+            'action' => 'required|string|in:active,resigned,on_leave,restore,delete',
+        ]);
 
-            return response()->json([
-                "status" => "OK! Deleting Successfully."
-            ],200);
-        }catch (Exception $e) {
-            return response()->json([
-                'status' => 'An error occurred while deleting.',
-                'message' => $e->getMessage()
-            ], 500);
+        $slug = $request->input('slug');
+        $action = $request->input('action');
+
+        // Fetch soft-deleted teachers as well
+        $teacher = Teacher::withTrashed()->where('slug', $slug)->firstOrFail();
+
+        switch ($action) {
+            case 'active':
+                $teacher->status = 'active';
+                $teacher->save();
+                return response()->json(['message' => 'Teacher status set to active']);
+
+            case 'resigned':
+                $teacher->status = 'resigned';
+                $teacher->save();
+                return response()->json(['message' => 'Teacher resigned']);
+
+            case 'on_leave':
+                $teacher->status = 'on_leave';
+                $teacher->save();
+                return response()->json(['message' => 'Teacher is on leave']);
+
+            case 'delete':
+                $teacher->status = 'resigned'; // or 'inactive' if you prefer
+                $teacher->save();
+                $teacher->delete();
+                return response()->json(['message' => 'Teacher soft-deleted']);
+
+            case 'restore':
+                if ($teacher->trashed()) {
+                    $teacher->restore();
+                    $teacher->status = 'active'; // or previous state
+                    $teacher->save();
+                    return response()->json(['message' => 'Teacher restored']);
+                }
+                return response()->json(['message' => 'Teacher is not deleted'], 400);
+
+            default:
+                return response()->json(['message' => 'Invalid action'], 400);
         }
     }
+
 }

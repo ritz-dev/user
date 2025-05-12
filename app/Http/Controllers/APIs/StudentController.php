@@ -6,7 +6,6 @@ use Exception;
 use App\Models\Student;
 use App\Models\Guardian;
 use App\Models\Personal;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -79,19 +78,34 @@ class StudentController extends Controller
 
         try {
 
-            // Create the personal record
-            $personal = Personal::create([
-                'full_name' => $request->full_name,
-                'birth_date' => $request->birth_date,
-                'gender' => $request->gender,
-                'region_code' => $request->region_code,
-                'township_code' => $request->township_code,
-                'citizenship' => $request->citizenship,
-                'serial_number' => $request->serial_number,
-                'nationality' => $request->nationality,
-                'religion' => $request->religion,
-                'blood_type' => $request->blood_type,
-            ]);
+            $personal = Personal::where('region_code', $request->region_code)
+                ->where('township_code', $request->township_code)
+                ->where('citizenship', $request->citizenship)
+                ->where('serial_number', $request->serial_number)
+                ->first();
+
+            if (!$personal) {
+                $personal = Personal::create([
+                    'full_name' => $request->full_name,
+                    'birth_date' => $request->birth_date,
+                    'gender' => $request->gender,
+                    'region_code' => $request->region_code,
+                    'township_code' => $request->township_code,
+                    'citizenship' => $request->citizenship,
+                    'serial_number' => $request->serial_number,
+                    'nationality' => $request->nationality,
+                    'religion' => $request->religion,
+                    'blood_type' => $request->blood_type,
+                ]);
+            } else {
+                // Check if personal is already linked to a student
+                $existingStudent = Student::where('personal_id', $personal->id)->first();
+                if ($existingStudent) {
+                    return response()->json([
+                        'error' => 'This personal information is already exist.'
+                    ], 409);
+                }
+            }
 
             // Create the student record
             $student = Student::create([
