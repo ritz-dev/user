@@ -28,6 +28,8 @@ class Employee extends Authenticatable
         'status',
     ];
 
+    protected $hidden = ["id","personal_id","created_at","updated_at","deleted_at"];
+
     protected static function boot()
     {
         parent::boot();

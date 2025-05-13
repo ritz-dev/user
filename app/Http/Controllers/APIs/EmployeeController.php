@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\APIs;
 
 use Exception;
-use Carbon\Carbon;
 use App\Models\Employee;
 use App\Models\Personal;
 use Illuminate\Support\Str;
@@ -12,7 +11,6 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\EmployeeResource;
-use Illuminate\Validation\ValidationException;
 
 class EmployeeController extends Controller
 {

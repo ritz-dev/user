@@ -24,6 +24,10 @@ class Personal extends Model
         'blood_type'
     ];
 
+    protected $hidden = ["id","created_at","updated_at","deleted_at"];
+
+    protected $casts = ['deleted_at' => 'datetime'];
+
     protected static function boot()
     {
         parent::boot();
@@ -35,7 +39,5 @@ class Personal extends Model
         });
     }
 
-    protected $casts = [
-        'deleted_at' => 'datetime',
-    ];
+    
 }

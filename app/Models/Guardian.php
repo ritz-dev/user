@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Guardian extends Model
 {
     protected $fillable = [
+        'slug',
         'student_id',
         'personal_id',
         'relation',
@@ -15,6 +16,8 @@ class Guardian extends Model
         'phone',
         'email',
     ];
+
+    protected $hidden = ["id","student_id","personal_id","created_at","updated_at","deleted_at"];
 
     protected static function boot()
     {
