@@ -368,7 +368,7 @@ class StudentController extends Controller
     {
         $request->validate([
             'student_ids' => 'required|array',
-            'student_ids.*' => 'integer|exists:students,id',
+            'student_ids.*' => 'string|exists:students,slug',
         ]);
 
         logger($request->student_ids);
