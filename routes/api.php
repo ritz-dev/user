@@ -17,6 +17,7 @@ Route::prefix('students')->group(function(){
     Route::post('show',[StudentController::class,'show']);
     Route::post('update',[StudentController::class,'update']);
     Route::post('action',[StudentController::class,'handleAction']);
+    Route::post('enrollment',[StudentController::class,'enrollment']);
     // Route::post('by-section',[StudentController::class,'bySection']);
 });
 

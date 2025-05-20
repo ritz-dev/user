@@ -363,5 +363,19 @@ class StudentController extends Controller
                 return response()->json(['message' => 'Invalid action'], 400);
         }
     }
+
+    public function enrollment(Request $request)
+    {
+        $request->validate([
+            'student_ids' => 'required|array',
+            'student_ids.*' => 'integer|exists:students,id',
+        ]);
+
+        logger($request->student_ids);
+    
+        $students = Student::whereIn('slug', $request->student_ids)->get();
+    
+        return response()->json($students);
+    }
    
 }
