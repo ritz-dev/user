@@ -370,8 +370,6 @@ class StudentController extends Controller
             'student_ids' => 'required|array',
             'student_ids.*' => 'string|exists:students,slug',
         ]);
-
-        logger($request->student_ids);
     
         $students = Student::whereIn('slug', $request->student_ids)->get();
     
