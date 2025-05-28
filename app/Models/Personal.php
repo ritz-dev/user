@@ -39,5 +39,32 @@ class Personal extends Model
         });
     }
 
-    
+    public function updates()
+    {
+        return $this->hasMany(PersonalUpdate::class);
+    }
+
+    public function latestUpdate()
+    {
+        return $this->hasOne(PersonalUpdate::class)->latestOfMany();
+    }
+
+    public function getEffectiveDataAttribute(): array
+    {
+        $update = $this->latestUpdate;
+
+        return [
+            'full_name'      => $update->full_name ?? $this->full_name,
+            'birth_date'     => $update->birth_date ?? $this->birth_date,
+            'gender'         => $update->gender ?? $this->gender,
+            'region_code'    => $update->region_code ?? $this->region_code,
+            'township_code'  => $update->township_code ?? $this->township_code,
+            'citizenship'    => $update->citizenship ?? $this->citizenship,
+            'serial_number'  => $update->serial_number ?? $this->serial_number,
+            'nationality'    => $update->nationality ?? $this->nationality,
+            'religion'       => $update->religion ?? $this->religion,
+            'blood_type'     => $update->blood_type ?? $this->blood_type,
+        ];
+    }
+        
 }

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\APIs;
 
 use Exception;
+use Carbon\Carbon;
 use App\Models\Employee;
 use App\Models\Personal;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Models\PersonalUpdate;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EmployeeRequest;
@@ -16,7 +19,20 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        return response()->json(Employee::with('personal')->get());
+        $employees = employee::with('personal')->get();
+
+        $employees->transform(function ($employee) {
+            $latestUpdate = PersonalUpdate::where('updatable_type', Employee::class)
+                ->where('updatable_id', $employee->id)
+                ->where('personal_id', $employee->personal_id)
+                ->latest()
+                ->first();
+
+            $employee->setRelation('personal', $latestUpdate ?? $employee->personal);
+            return $employee;
+        });
+
+        return response()->json($employees);
         // try {
         //     $limit = (int) $request->limit;
         //     $search = $request->search;
@@ -134,42 +150,51 @@ class EmployeeController extends Controller
 
     public function show(Request $request)
     {
-        // Validate the incoming request to ensure the 'slug' is provided
         $validated = $request->validate([
             'slug' => 'required|string|exists:employees,slug',
         ]);
 
-        // Retrieve the student using the slug
-        $employee = Employee::with(['personal']) // Include related models if needed
+        // Retrieve the student with personal and guardians
+        $employee = Employee::with('personal') // Include related models if needed
             ->where('slug', $validated['slug'])
             ->first();
 
-        // If the student is not found, return a 404 error
         if (!$employee) {
-            return response()->json(['error' => 'Employee not found'], 404);
+            return response()->json(['error' => 'employee not found'], 404);
         }
 
-        // Return the student data
+        // Check if a personal update exists for this employee
+        $latestUpdate = PersonalUpdate::where('updatable_type', Employee::class)
+            ->where('updatable_id', $employee->id)
+            ->where('personal_id', $employee->personal_id)
+            ->latest()
+            ->first();
+
+        // Use updated personal if it exists, otherwise original
+        $personalData = $latestUpdate ?? $employee->personal;
+
+        // Replace the employee->personal with latest data (either original or updated)
+        $employee->setRelation('personal', $personalData);
+
+        // Return the employee with either updated or original personal data
         return response()->json($employee);
     }
 
-    public function update(EmployeeRequest $request)
+    public function update(Request $request)
     {
+        $request->merge(array_map(function ($value) {
+            return $value === '' ? null : $value;
+        }, $request->all()));
+
+        $employee = Employee::where('slug', $request->slug)->with('personal')->firstOrFail();
+
         // Validate the incoming request
-        $request->validate([
-            // Personal fields
-            'full_name' => 'required|string|max:255',
-            'birth_date' => 'required|date',
-            'gender' => 'required|in:male,female,other',
-            'region_code' => 'required|string|max:10',
-            'township_code' => 'required|string|max:10',
-            'citizenship' => 'required|string|max:10',
-            'serial_number' => 'required|string|max:20',
-    
+        $validated = $request->validate([
             // Employee fields
-            'employee_code' => "required|string|unique:employees,employee_code,$id",
-            'email' => "nullable|email|unique:employees,email,$id",
-            'phone' => "nullable|string|unique:employees,phone,$id",
+            'slug' => 'required|string',
+            'employee_code' => ['required','string',Rule::unique('employees', 'employee_code')->ignore($employee->id)],
+            'email' => ['nullable', 'email', Rule::unique('employees', 'email')->ignore($employee->id)],
+            'phone' => ['nullable', 'string', Rule::unique('employees', 'phone')->ignore($employee->id)],
             'address' => 'nullable|string',
             'position' => 'nullable|string',
             'department' => 'nullable|string',
@@ -179,42 +204,80 @@ class EmployeeController extends Controller
             'resign_date' => 'nullable|date',
             'status' => 'nullable|in:active,resigned,on_leave,terminated',
             'employment_type' => 'nullable|in:full-time,part-time,contract',
+
+            // Personal fields
+            'full_name' => 'required|string|max:255',
+            'birth_date' => 'required|date',
+            'gender' => 'required|in:male,female',
+            'region_code' => 'required|string|max:10',
+            'township_code' => 'required|string|max:10',
+            'citizenship' => 'required|string|max:10',
+            'serial_number' => 'required|string|max:20',
+            'nationality' => 'nullable|string',
+            'religion' => 'nullable|string',
+            'blood_type' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',            
         ]);
     
+        DB::beginTransaction();
+
         try {
-            // Start a database transaction
-            DB::beginTransaction();
-    
-            // Find the employee by ID, along with their related personal data
-            $employee = Employee::findOrFail($id);
-            $personal = $employee->personal; // Assuming there's a relation to a Personal model
-    
-            // Update the personal data
-            $personal->update([
-                'full_name' => $request->full_name,
-                'birth_date' => $request->birth_date,
-                'gender' => $request->gender,
-                'region_code' => $request->region_code,
-                'township_code' => $request->township_code,
-                'citizenship' => $request->citizenship,
-                'serial_number' => $request->serial_number,
-            ]);
     
             // Update the employee data
-            $employee->update([
-                'employee_code' => $request->employee_code,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'position' => $request->position,
-                'department' => $request->department,
-                'experience_years' => $request->experience_years ?? 0,
-                'salary' => $request->salary,
-                'hire_date' => $request->hire_date,
-                'resign_date' => $request->resign_date,
-                'status' => $request->status ?? 'active',
-                'employment_type' => $request->employment_type ?? 'full-time',
-            ]);
+            $employee->fill([
+                'employee_code'     => $request->employee_code,
+                'email'             => $request->email,
+                'phone'             => $request->phone,
+                'address'           => $request->address,
+                'position'          => $request->position,
+                'department'        => $request->department,
+                'experience_years'  => $request->experience_years ?? 0,
+                'salary'            => $request->salary,
+                'hire_date'         => $request->hire_date,
+                'resign_date'       => $request->resign_date,
+                'status'            => $request->status ?? 'active',
+                'employment_type'   => $request->employment_type ?? 'full-time',
+            ])->save();
+
+            $fields = [
+                'full_name', 'birth_date', 'gender',
+                'region_code', 'township_code', 'citizenship',
+                'serial_number', 'nationality', 'religion', 'blood_type'
+            ];
+
+            $hasChanges = false;
+
+            foreach ($fields as $field) {
+                $original = $employee->personal->$field;
+                $new = $request->input($field);
+
+                if ($field === 'birth_date') {
+                    $original = \Carbon\Carbon::parse($original)->toDateString();
+                    $new = \Carbon\Carbon::parse($new)->toDateString();
+                }
+
+                if ($original !== $new) {
+                    $hasChanges = true;
+                    break;
+                }
+            }
+
+            if ($hasChanges) {
+                PersonalUpdate::create([
+                    'personal_id'    => $employee->personal->id,
+                    'full_name'      => $request->full_name,
+                    'birth_date'     => $request->birth_date,
+                    'gender'         => $request->gender,
+                    'region_code'    => $request->region_code,
+                    'township_code'  => $request->township_code,
+                    'citizenship'    => $request->citizenship,
+                    'serial_number'  => $request->serial_number,
+                    'nationality'    => $request->nationality,
+                    'religion'       => $request->religion,
+                    'blood_type'     => $request->blood_type,
+                    'updatable_id'   => $employee->id,
+                    'updatable_type' => Employee::class,
+                ]);
+            }
     
             // Commit the transaction
             DB::commit();

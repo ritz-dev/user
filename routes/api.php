@@ -25,7 +25,7 @@ Route::prefix('teachers')->group(function(){
     Route::post('/',[TeacherController::class,'index']);
     Route::post('store',[TeacherController::class,'store']);
     Route::post('show',[TeacherController::class,'show']);
-    Route::put('update',[TeacherController::class,'update']);
+    Route::post('update',[TeacherController::class,'update']);
     Route::post('action',[TeacherController::class,'handleAction']);
 });
 
@@ -33,6 +33,6 @@ Route::prefix('employees')->group(function(){
     Route::post('/',[EmployeeController::class,'index']);
     Route::post('store',[EmployeeController::class,'store']);
     Route::post('show',[EmployeeController::class,'show']);
-    Route::put('update',[EmployeeController::class,'update']);
+    Route::post('update',[EmployeeController::class,'update']);
     Route::post('action',[EmployeeController::class,'handleAction']);
 });

@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\APIs;
 
 use Exception;
+use Carbon\Carbon;
 use App\Models\Teacher;
 use App\Models\Personal;
 use Illuminate\Http\Request;
+use App\Models\PersonalUpdate;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TeacherResource;
 
@@ -14,7 +18,20 @@ class TeacherController extends Controller
 {
     public function index(Request $request)
     {
-        return response()->json(Teacher::with('personal')->get());
+        $teachers = Teacher::with('personal')->get();
+
+        $teachers->transform(function ($teacher) {
+            $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
+                ->where('updatable_id', $teacher->id)
+                ->where('personal_id', $teacher->personal_id)
+                ->latest()
+                ->first();
+
+            $teacher->setRelation('personal', $latestUpdate ?? $teacher->personal);
+            return $teacher;
+        });
+
+        return response()->json($teachers);
         // try {
         //     $limit = (int) $request->limit;
         //     $search = $request->search;
@@ -55,6 +72,7 @@ class TeacherController extends Controller
             'township_code' => 'required|string|max:10',
             'citizenship' => 'required|string|max:10',
             'serial_number' => 'required|string|max:20',
+
             // Teacher fields
             'teacher_code' => 'required|string|unique:teachers,teacher_code',
             'email' => 'nullable|email|unique:teachers,email',
@@ -123,96 +141,148 @@ class TeacherController extends Controller
 
     public function show(Request $request)
     {
-        // Validate the incoming request to ensure the 'slug' is provided
         $validated = $request->validate([
             'slug' => 'required|string|exists:teachers,slug',
         ]);
 
-        // Retrieve the student using the slug
-        $teacher = Teacher::with(['personal']) // Include related models if needed
+        // Retrieve the student with personal and guardians
+        $teacher = Teacher::with('personal') // Include related models if needed
             ->where('slug', $validated['slug'])
             ->first();
 
-        // If the student is not found, return a 404 error
         if (!$teacher) {
-            return response()->json(['error' => 'Teacher not found'], 404);
+            return response()->json(['error' => 'teacher not found'], 404);
         }
 
-        // Return the student data
+        // Check if a personal update exists for this teacher
+        $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
+            ->where('updatable_id', $teacher->id)
+            ->where('personal_id', $teacher->personal_id)
+            ->latest()
+            ->first();
+
+        // Use updated personal if it exists, otherwise original
+        $personalData = $latestUpdate ?? $teacher->personal;
+
+        // Replace the teacher->personal with latest data (either original or updated)
+        $teacher->setRelation('personal', $personalData);
+
+        // Return the teacher with either updated or original personal data
         return response()->json($teacher);
     }
 
     public function update(Request $request)
     {
-        // Validate the incoming request
-        $request->validate([
-            // Personal fields
-            'full_name' => 'required|string|max:255',
-            'birth_date' => 'required|date',
-            'gender' => 'required|in:male,female,other',
-            'region_code' => 'required|string|max:10',
-            'township_code' => 'required|string|max:10',
-            'citizenship' => 'required|string|max:10',
-            'serial_number' => 'required|string|max:20',
+        $request->merge(array_map(function ($value) {
+            return $value === '' ? null : $value;
+        }, $request->all()));
 
-            // Teacher fields
-            'teacher_code' => "required|string|unique:teachers,teacher_code,$id",
-            'email' => "nullable|email|unique:teachers,email,$id",
-            'phone' => "nullable|string|unique:teachers,phone,$id",
+        $teacher = Teacher::where('slug', $request->slug)->with('personal')->firstOrFail();
+
+        $validated = $request->validate([
+            // teacher
+            'slug' => 'required|string',
+            'teacher_code' => ['required', 'string', Rule::unique('teachers', 'teacher_code')->ignore($teacher->id)],
+            'email' => ['nullable', 'email', Rule::unique('teachers', 'email')->ignore($teacher->id)],
+            'phone' => ['nullable', 'string', Rule::unique('teachers', 'phone')->ignore($teacher->id)],
             'address' => 'nullable|string',
             'qualification' => 'nullable|string',
             'subject' => 'nullable|string',
             'experience_years' => 'nullable|integer|min:0',
             'salary' => 'required|numeric|min:0',
             'hire_date' => 'required|date',
-            'status' => 'nullable|in:active,resigned,on_leave',
-            'employment_type' => 'nullable|in:full-time,part-time,contract',
+            'status' => 'required|in:active,resigned,on_leave',
+            'employment_type' => 'required|in:full-time,part-time,contract',
+
+            // personal
+            'full_name' => 'required|string',
+            'birth_date' => 'required|date',
+            'gender' => 'required|in:male,female',
+            'region_code' => 'required|string',
+            'township_code' => 'required|string',
+            'citizenship' => 'required|string',
+            'serial_number' => 'required|string',
+            'nationality' => 'nullable|string',
+            'religion' => 'nullable|string',
+            'blood_type' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
 
+        DB::beginTransaction();
+
         try {
-            DB::beginTransaction();
 
-            $teacher = Teacher::findOrFail($id);
-            $personal = $teacher->personal;
-
-            // Update personal data
-            $personal->update([
-                'full_name' => $request->full_name,
-                'birth_date' => $request->birth_date,
-                'gender' => $request->gender,
-                'region_code' => $request->region_code,
-                'township_code' => $request->township_code,
-                'citizenship' => $request->citizenship,
-                'serial_number' => $request->serial_number,
-            ]);
-
-            // Update teacher data
-            $teacher->update([
-                'teacher_code' => $request->teacher_code,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'qualification' => $request->qualification,
-                'subject' => $request->subject,
+            $teacher->fill([
+                'teacher_code'     => $request->teacher_code,
+                'email'            => $request->email,
+                'phone'            => $request->phone,
+                'address'          => $request->address,
+                'qualification'    => $request->qualification,
+                'subject'          => $request->subject,
                 'experience_years' => $request->experience_years ?? 0,
-                'salary' => $request->salary,
-                'hire_date' => $request->hire_date,
-                'status' => $request->status ?? 'active',
-                'employment_type' => $request->employment_type ?? 'full-time',
-            ]);
+                'salary'           => $request->salary,
+                'hire_date'        => $request->hire_date,
+                'status'           => $request->status,
+                'employment_type'  => $request->employment_type,
+            ])->save();
+
+            $fields = [
+                'full_name', 'birth_date', 'gender',
+                'region_code', 'township_code', 'citizenship',
+                'serial_number', 'nationality', 'religion', 'blood_type'
+            ];
+
+            $hasChanges = false;
+
+            foreach ($fields as $field) {
+                $original = $teacher->personal->$field;
+                $new = $request->input($field);
+
+                if ($field === 'birth_date') {
+                    $original = \Carbon\Carbon::parse($original)->toDateString();
+                    $new = \Carbon\Carbon::parse($new)->toDateString();
+                }
+
+                if ($original !== $new) {
+                    $hasChanges = true;
+                    break;
+                }
+            }
+
+            if ($hasChanges) {
+                PersonalUpdate::create([
+                    'personal_id'    => $teacher->personal->id,
+                    'full_name'      => $request->full_name,
+                    'birth_date'     => $request->birth_date,
+                    'gender'         => $request->gender,
+                    'region_code'    => $request->region_code,
+                    'township_code'  => $request->township_code,
+                    'citizenship'    => $request->citizenship,
+                    'serial_number'  => $request->serial_number,
+                    'nationality'    => $request->nationality,
+                    'religion'       => $request->religion,
+                    'blood_type'     => $request->blood_type,
+                    'updatable_id'   => $teacher->id,
+                    'updatable_type' => Teacher::class,
+                ]);
+            }
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Teacher updated successfully.',
-                'teacher' => $teacher->fresh('personal'),
+                'teacher' => $teacher->load('personal'),
             ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'error' => 'Failed to update teacher: ' . $e->getMessage(),
-            ], 500);
+
+            \Log::error('Failed to update teacher', [
+                'error' => $e->getMessage(),
+                'teacher_id' => $teacher->id ?? null,
+                'request' => $request->all(),
+            ]);
+
+            return response()->json(['error' => 'Failed to update teacher'], 500);
         }
     }
 
