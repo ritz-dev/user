@@ -50,6 +50,6 @@ class Teacher extends Model
      */
     public function personal()
     {
-        return $this->belongsTo(Personal::class);
+        return $this->belongsTo(Personal::class, 'personal_slug', 'slug');
     }
 }
