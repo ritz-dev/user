@@ -14,6 +14,7 @@ class Student extends Model
     protected $fillable = [
         'slug',
         'personal_slug',
+        'student_name',
         'student_number',
         'registration_number',
         'school_name',
@@ -26,7 +27,7 @@ class Student extends Model
         'graduation_date',
     ];
 
-    protected $hidden = ["personal_id","created_at","updated_at","deleted_at"];
+    protected $hidden = ["personal_slug","created_at","updated_at","deleted_at"];
 
     protected $attributes = [
         'status' => 'enrolled',

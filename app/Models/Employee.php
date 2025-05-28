@@ -14,6 +14,7 @@ class Employee extends Authenticatable
     protected $fillable = [
         'slug',
         'personal_slug',
+        'employee_name',
         'employee_code',
         'email',
         'phone',
@@ -28,7 +29,7 @@ class Employee extends Authenticatable
         'status',
     ];
 
-    protected $hidden = ["id","created_at","updated_at","deleted_at"];
+    protected $hidden = ["id","personal_slug","created_at","updated_at","deleted_at"];
 
     protected static function boot()
     {

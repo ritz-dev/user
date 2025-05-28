@@ -12,7 +12,8 @@ class Teacher extends Model
 
     protected $fillable = [
         'slug',
-        'personal_id',
+        'personal_slug',
+        'teacher_name',
         'teacher_code',
         'email',
         'phone',
@@ -26,7 +27,7 @@ class Teacher extends Model
         'employment_type',
     ];
 
-    protected $hidden = ["id","personal_id","created_at","updated_at","deleted_at"];
+    protected $hidden = ["id","personal_slug","created_at","updated_at","deleted_at"];
 
     protected $casts = [
         'hire_date' => 'date',

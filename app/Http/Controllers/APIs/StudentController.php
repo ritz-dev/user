@@ -20,50 +20,65 @@ class StudentController extends Controller
 {
     public function index(Request $request)
     {
-        $students = Student::with(['personal', 'guardians'])->get();
+        try {
+            // Validate and sanitize query parameters
+            $validated = $request->validate([
+                'limit' => 'sometimes|integer|min:1|max:100',
+                'search' => 'sometimes|string|max:255',
+                'status' => 'sometimes|in:active,resigned,on_leave,terminated',
+            ]);
 
-        // For each student, check for latest personal update
-        $students->transform(function ($student) {
-            $latestUpdate = PersonalUpdate::where('updatable_type', Student::class)
-                ->where('updatable_id', $student->id)
-                ->where('personal_id', $student->personal_id)
-                ->latest()
-                ->first();
+            $limit = $validated['limit'] ?? null;
+            $search = $validated['search'] ?? null;
+            $status = $validated['status'] ?? null;
 
-            // Override the personal relationship with the update if it exists
-            $student->setRelation('personal', $latestUpdate ?? $student->personal);
+            // Build query with eager loading
+            $query = Student::with(['personal', 'guardians'])->orderBy('student_name', 'asc');
 
-            return $student;
-        });
+            // Apply status filter if provided
+            if ($status) {
+                $query->where('status', $status);
+            }
 
-        return response()->json($students);
-        // try {
-        //     $limit = (int) $request->limit;
-        //     $search = $request->search;
+            // Apply search filter if provided
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('student_name', 'like', "%{$search}%")
+                    ->orWhere('student_code', 'like', "%{$search}%");
+                });
+            }
 
-        //     $query = Student::orderBy('id', 'desc');
+            // Execute the query with or without pagination
+            $students = $limit ? $query->paginate($limit) : $query->get();
 
-        //     if ($search) {
-        //         $query->where('name', 'LIKE', $search . '%');
-        //     }
+            // Replace 'personal' relation with latest update if available
+            $students->transform(function ($student) {
+                $latestUpdate = PersonalUpdate::where('updatable_type', Student::class)
+                    ->where('updatable_id', $student->id)
+                    ->where('personal_slug', $student->personal_slug)
+                    ->latest()
+                    ->first();
 
-        //     $data = $limit ? $query->paginate($limit) : $query->get();
+                $student->setRelation('personal', $latestUpdate ?? $student->personal);
+                return $student;
+            });
 
-        //     $data = StudentResource::collection($data);
+            // Respond with paginated or simple data
+            return response()->json([
+                'status' => 'OK! The request was successful',
+                'total' => student::count(),
+                'data' => $limit ? $students->items() : $students,
+            ], 200);
 
-        //     $total = Student::count();
+        } catch (\Exception $e) {
+            Log::error('Error fetching students: ' . $e->getMessage());
 
-        //     return response()->json([
-        //         "status" => "OK! The request was successful",
-        //         "total" => $total,
-        //         "data" => $data
-        //     ], 200);
-        // } catch (Exception $e) {
-        //     return response()->json([
-        //         'status' => 'Bad Request!. The request is invalid.',
-        //         'message' => $e->getMessage()
-        //     ],400);
-        // }
+            return response()->json([
+                'status' => 'Error',
+                'message' => 'Failed to fetch student data.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function store(Request $request)
@@ -119,7 +134,7 @@ class StudentController extends Controller
                 ]);
             } else {
                 // Check if personal is already linked to a student
-                $existingStudent = Student::where('personal_id', $personal->id)->first();
+                $existingStudent = Student::where('personal_slug', $personal->slug)->first();
                 if ($existingStudent) {
                     return response()->json([
                         'error' => 'This personal information is already exist.'
@@ -129,7 +144,7 @@ class StudentController extends Controller
 
             // Create the student record
             $student = Student::create([
-                'personal_id' => $personal->id,
+                'personal_slug' => $personal->slug,
                 'student_name' => $personal->full_name,
                 'student_number' => $request->student_number,
                 'registration_number' => $request->registration_number,
@@ -171,8 +186,8 @@ class StudentController extends Controller
 
                 // Create guardian record and associate it with student and personal
                 Guardian::create([
-                    'student_id' => $student->id,
-                    'personal_id' => $personalGuardian->id,
+                    'student_slug' => $student->slug,
+                    'personal_slug' => $personalGuardian->slug,
                     'relation' => $guardianData['relation'],
                     'occupation' => $guardianData['occupation'] ?? null,
                     'phone' => $guardianData['phone'] ?? null,
@@ -208,8 +223,8 @@ class StudentController extends Controller
 
         // Check if a personal update exists for this student
         $latestUpdate = PersonalUpdate::where('updatable_type', Student::class)
-            ->where('updatable_id', $student->id)
-            ->where('personal_id', $student->personal_id)
+            ->where('updatable_slug', $student->slug)
+            ->where('personal_slug', $student->personal_slug)
             ->latest()
             ->first();
 
@@ -304,7 +319,7 @@ class StudentController extends Controller
 
             if ($hasChanges) {
                 PersonalUpdate::create([
-                    'personal_id'    => $student->personal->id,
+                    'personal_slug'    => $student->personal->slug,
                     'full_name'      => $request->full_name,
                     'birth_date'     => $request->birth_date,
                     'gender'         => $request->gender,
@@ -329,13 +344,6 @@ class StudentController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-
-            \Log::error('Failed to update student', [
-                'error' => $e->getMessage(),
-                'student_id' => $student->id ?? null,
-                'request' => $request->all(),
-                'user_id' => auth()->id(),
-            ]);
 
             return response()->json(['error' => 'Failed to update student'], 500);
         }
@@ -398,11 +406,11 @@ class StudentController extends Controller
     public function enrollment(Request $request)
     {
         $request->validate([
-            'student_ids' => 'required|array',
-            'student_ids.*' => 'string|exists:students,slug',
+            'student_slugs' => 'required|array',
+            'student_slugs.*' => 'string|exists:students,slug',
         ]);
     
-        $students = Student::whereIn('slug', $request->student_ids)->get();
+        $students = Student::whereIn('slug', $request->student_slugs)->get();
     
         return response()->json($students);
     }

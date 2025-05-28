@@ -12,7 +12,6 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\TeacherResource;
 
 class TeacherController extends Controller
 {
@@ -126,14 +125,14 @@ class TeacherController extends Controller
                 ]);
             } else {
                 // Check if personal already used by a teacher
-                $existingTeacher = Teacher::where('personal_id', $personal->id)->first();
+                $existingTeacher = Teacher::where('personal_slug', $personal->slug)->first();
                 if ($existingTeacher) {
                     return response()->json(['error' => 'This personal is already assigned to another teacher.'], 409);
                 }
             }
 
             $teacher = Teacher::create([
-                'personal_id' => $personal->id,
+                'personal_slug' => $personal->slug,
                 'teacher_name' => $personal->full_name, 
                 'teacher_code' => $request->teacher_code,
                 'email' => $request->email,
@@ -176,7 +175,7 @@ class TeacherController extends Controller
         // Check if a personal update exists for this teacher
         $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
             ->where('updatable_id', $teacher->id)
-            ->where('personal_id', $teacher->personal_id)
+            ->where('personal_slug', $teacher->personal_slug)
             ->latest()
             ->first();
 
@@ -270,7 +269,7 @@ class TeacherController extends Controller
 
             if ($hasChanges) {
                 PersonalUpdate::create([
-                    'personal_id'    => $teacher->personal->id,
+                    'personal_slug'    => $teacher->personal->slug,
                     'full_name'      => $request->full_name,
                     'birth_date'     => $request->birth_date,
                     'gender'         => $request->gender,

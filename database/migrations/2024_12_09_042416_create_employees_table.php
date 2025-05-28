@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->uuid('slug')->unique();
             $table->string('personal_slug')->unique();
+            $table->string('employee_name');
             $table->string('employee_code')->unique();
             $table->string('email')->unique()->nullable();
             $table->string('phone')->unique()->nullable();

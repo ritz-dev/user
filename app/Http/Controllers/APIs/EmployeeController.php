@@ -11,28 +11,72 @@ use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\EmployeeResource;
 
 class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        $employees = employee::with('personal')->get();
+        try {
+            // Validate and sanitize query parameters
+            $validated = $request->validate([
+                'limit' => 'sometimes|integer|min:1|max:100',
+                'search' => 'sometimes|string|max:255',
+                'status' => 'sometimes|in:active,resigned,on_leave',
+            ]);
 
-        $employees->transform(function ($employee) {
-            $latestUpdate = PersonalUpdate::where('updatable_type', Employee::class)
-                ->where('updatable_id', $employee->id)
-                ->where('personal_id', $employee->personal_id)
-                ->latest()
-                ->first();
+            $limit = $validated['limit'] ?? null;
+            $search = $validated['search'] ?? null;
+            $status = $validated['status'] ?? null;
 
-            $employee->setRelation('personal', $latestUpdate ?? $employee->personal);
-            return $employee;
-        });
+            // Build query with eager loading
+            $query = Employee::with('personal')->orderBy('employee_name', 'asc');
 
-        return response()->json($employees);
+            // Apply status filter if provided
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            // Apply search filter if provided
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('employee_name', 'like', "%{$search}%")
+                    ->orWhere('employee_code', 'like', "%{$search}%");
+                });
+            }
+
+            // Execute the query with or without pagination
+            $employees = $limit ? $query->paginate($limit) : $query->get();
+
+            // Replace 'personal' relation with latest update if available
+            $employees->transform(function ($employee) {
+                $latestUpdate = PersonalUpdate::where('updatable_type', Employee::class)
+                    ->where('updatable_id', $employee->id)
+                    ->where('personal_slug', $employee->personal_slug)
+                    ->latest()
+                    ->first();
+
+                $employee->setRelation('personal', $latestUpdate ?? $employee->personal);
+                return $employee;
+            });
+
+            // Respond with paginated or simple data
+            return response()->json([
+                'status' => 'OK! The request was successful',
+                'total' => Employee::count(),
+                'data' => $limit ? $employees->items() : $employees,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching teachers: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'Error',
+                'message' => 'Failed to fetch employee data.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
         // try {
         //     $limit = (int) $request->limit;
         //     $search = $request->search;
