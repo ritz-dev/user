@@ -9,15 +9,15 @@ class Guardian extends Model
 {
     protected $fillable = [
         'slug',
-        'student_id',
-        'personal_id',
+        'student_slug',
+        'personal_slug',
         'relation',
         'occupation',
         'phone',
         'email',
     ];
 
-    protected $hidden = ["id","student_id","personal_id","created_at","updated_at","deleted_at"];
+    protected $hidden = ["id","student_slug","personal_slug","created_at","updated_at","deleted_at"];
 
     protected static function boot()
     {
@@ -32,11 +32,11 @@ class Guardian extends Model
 
     public function student()
     {
-        return $this->belongsTo(Student::class);
+        return $this->belongsTo(Student::class, 'student_slug', 'slug');
     }
 
     public function personal()
     {
-        return $this->belongsTo(Personal::class);
+        return $this->belongsTo(Personal::class, 'personal_slug', 'slug');
     }
 }

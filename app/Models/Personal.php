@@ -41,7 +41,7 @@ class Personal extends Model
 
     public function updates()
     {
-        return $this->hasMany(PersonalUpdate::class);
+        return $this->hasMany(PersonalUpdate::class, 'personal_slug', 'slug');
     }
 
     public function latestUpdate()

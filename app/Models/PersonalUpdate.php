@@ -11,17 +11,17 @@ class PersonalUpdate extends Model
     protected $primaryKey = 'updated_id';
 
     protected $fillable = [
-        'personal_id', 'full_name', 'birth_date', 'gender',
+        'personal_slug', 'full_name', 'birth_date', 'gender',
         'region_code', 'township_code', 'citizenship', 'serial_number',
         'nationality', 'religion', 'blood_type',
         'updatable_id', 'updatable_type'
     ];
 
-    protected $hidden = ["updated_id","personal_id","updatable_id","updatable_type","created_at","updated_at","deleted_at"];
+    protected $hidden = ["updated_id","updatable_id","updatable_type","created_at","updated_at","deleted_at"];
 
     public function personal()
     {
-        return $this->belongsTo(Personal::class, 'personal_id');
+        return $this->belongsTo(Personal::class, 'personal_slug');
     }
 
     public function updatable()
@@ -31,6 +31,6 @@ class PersonalUpdate extends Model
 
     public function updatedBy()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_slug');
     }
 }

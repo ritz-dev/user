@@ -53,7 +53,7 @@ class TeacherController extends Controller
             $teachers->transform(function ($teacher) {
                 $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
                     ->where('updatable_id', $teacher->id)
-                    ->where('personal_id', $teacher->personal_id)
+                    ->where('personal_slug', $teacher->personal_slug)
                     ->latest()
                     ->first();
 
@@ -298,7 +298,7 @@ class TeacherController extends Controller
 
             \Log::error('Failed to update teacher', [
                 'error' => $e->getMessage(),
-                'teacher_id' => $teacher->id ?? null,
+                'teacher' => $teacher->slug ?? null,
                 'request' => $request->all(),
             ]);
 

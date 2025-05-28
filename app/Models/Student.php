@@ -13,7 +13,7 @@ class Student extends Model
 
     protected $fillable = [
         'slug',
-        'personal_id',
+        'personal_slug',
         'student_number',
         'registration_number',
         'school_name',
@@ -45,12 +45,12 @@ class Student extends Model
 
     public function personal()
     {
-        return $this->belongsTo(Personal::class);
+        return $this->belongsTo(Personal::class, 'personal_slug', 'slug');
     }
 
     public function guardians()
     {
-        return $this->hasMany(Guardian::class);
+        return $this->hasMany(Guardian::class, 'student_slug', 'slug');
     }
 
     public function getIsGraduatedAttribute()

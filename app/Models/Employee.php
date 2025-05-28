@@ -13,7 +13,7 @@ class Employee extends Authenticatable
 
     protected $fillable = [
         'slug',
-        'personal_id',
+        'personal_slug',
         'employee_code',
         'email',
         'phone',
@@ -28,7 +28,7 @@ class Employee extends Authenticatable
         'status',
     ];
 
-    protected $hidden = ["id","personal_id","created_at","updated_at","deleted_at"];
+    protected $hidden = ["id","created_at","updated_at","deleted_at"];
 
     protected static function boot()
     {
@@ -43,6 +43,7 @@ class Employee extends Authenticatable
 
     public function personal()
     {
-        return $this->belongsTo(Personal::class);
+        return $this->belongsTo(Personal::class, 'personal_slug', 'slug');
     }
 }
+
