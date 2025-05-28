@@ -18,47 +18,65 @@ class TeacherController extends Controller
 {
     public function index(Request $request)
     {
-        $teachers = Teacher::with('personal')->get();
+        try {
+            // Validate and sanitize query parameters
+            $validated = $request->validate([
+                'limit' => 'sometimes|integer|min:1|max:100',
+                'search' => 'sometimes|string|max:255',
+                'status' => 'sometimes|in:active,resigned,on_leave',
+            ]);
 
-        $teachers->transform(function ($teacher) {
-            $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
-                ->where('updatable_id', $teacher->id)
-                ->where('personal_id', $teacher->personal_id)
-                ->latest()
-                ->first();
+            $limit = $validated['limit'] ?? null;
+            $search = $validated['search'] ?? null;
+            $status = $validated['status'] ?? null;
 
-            $teacher->setRelation('personal', $latestUpdate ?? $teacher->personal);
-            return $teacher;
-        });
+            // Build query with eager loading
+            $query = Teacher::with('personal')->orderBy('teacher_name', 'asc');
 
-        return response()->json($teachers);
-        // try {
-        //     $limit = (int) $request->limit;
-        //     $search = $request->search;
+            // Apply status filter if provided
+            if ($status) {
+                $query->where('status', $status);
+            }
 
-        //     $query = Teacher::orderBy('id', 'desc');
+            // Apply search filter if provided
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('teacher_name', 'like', "%{$search}%")
+                    ->orWhere('teacher_code', 'like', "%{$search}%");
+                });
+            }
 
-        //     if ($search) {
-        //         $query->where('name', 'LIKE', $search . '%');
-        //     }
+            // Execute the query with or without pagination
+            $teachers = $limit ? $query->paginate($limit) : $query->get();
 
-        //     $data = $limit ? $query->paginate($limit) : $query->get();
+            // Replace 'personal' relation with latest update if available
+            $teachers->transform(function ($teacher) {
+                $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
+                    ->where('updatable_id', $teacher->id)
+                    ->where('personal_id', $teacher->personal_id)
+                    ->latest()
+                    ->first();
 
-        //     $data = TeacherResource::collection($data);
+                $teacher->setRelation('personal', $latestUpdate ?? $teacher->personal);
+                return $teacher;
+            });
 
-        //     $total = Teacher::count();
+            // Respond with paginated or simple data
+            return response()->json([
+                'status' => 'OK! The request was successful',
+                'total' => Teacher::count(),
+                'data' => $limit ? $teachers->items() : $teachers,
+            ], 200);
 
-        //     return response()->json([
-        //         "status" => "OK! The request was successful",
-        //         "total" => $total,
-        //         "data" => $data
-        //     ], 200);
-        // } catch (Exception $e) {
-        //     return response()->json([
-        //         'status' => 'Bad Request!. The request is invalid.',
-        //         'message' => $e->getMessage()
-        //     ],400);
-        // }
+        } catch (\Exception $e) {
+            Log::error('Error fetching teachers: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'Error',
+                'message' => 'Failed to fetch teacher data.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function store(Request $request)

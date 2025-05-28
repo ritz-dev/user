@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('teachers', function (Blueprint $table) {
             $table->id();
             $table->uuid('slug')->unique();
-            $table->foreignId('personal_id')->constrained('personals');
+            $table->string('personal_slug')->unique();
             $table->string('teacher_name');
             $table->string('teacher_code')->unique();
             $table->string('email')->unique()->nullable();
@@ -27,6 +27,10 @@ return new class extends Migration
             $table->date('hire_date');
             $table->enum('status', ['active', 'resigned', 'on_leave'])->default('active');
             $table->enum('employment_type', ['full-time', 'part-time', 'contract'])->default('full-time');
+
+            //Foreign key
+            $table->foreign('personal_slug')->references('slug')->on('personals')->onDelete('cascade');
+            
             $table->softDeletes();
             $table->timestamps();
         });

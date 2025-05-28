@@ -17,7 +17,7 @@ class EmployeeSeeder extends Seeder
 
         foreach ($employeePersonals as $index => $personal) {
             $employee = Employee::create([
-                'personal_id'      => $personal->id, // auto-create Personal if not already seeded
+                'personal_slug'      => $personal->slug, // auto-create Personal if not already seeded
                 'employee_code'    => 'EMP' . str_pad($index + 1, 5, '0', STR_PAD_LEFT),
                 'email'            => 'employee' . ($index + 1) . '@company.com',
                 'phone'            => '091000000' . ($index + 1),  // Custom phone numbers

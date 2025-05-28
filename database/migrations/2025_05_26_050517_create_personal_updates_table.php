@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('personal_updates', function (Blueprint $table) {
             $table->id('updated_id');
-            $table->unsignedBigInteger('personal_id');
+            $table->string('personal_slug');
 
             // Snapshot fields
             $table->string('full_name');
@@ -33,7 +33,7 @@ return new class extends Migration
             
             $table->timestamps();
 
-            $table->foreign('personal_id')->references('id')->on('personals')->cascadeOnDelete();
+            $table->foreign('personal_slug')->references('slug')->on('personals')->cascadeOnDelete();
         });
     }
 

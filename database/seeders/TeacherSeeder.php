@@ -18,7 +18,7 @@ class TeacherSeeder extends Seeder
         
         foreach ($teacherPersonals as $index => $personal) {
             $teacher = Teacher::create([
-                'personal_id' => $personal->id,
+                'personal_slug' => $personal->slug,
                 'teacher_name' => $personal->full_name,
                 'teacher_code' => 'TCH' . str_pad($index + 1, 3, '0', STR_PAD_LEFT),
                 'email' => 'teacher' . ($index + 1) . '@example.com',

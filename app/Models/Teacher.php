@@ -26,7 +26,7 @@ class Teacher extends Model
         'employment_type',
     ];
 
-    protected $hidden = ["personal_id","created_at","updated_at","deleted_at"];
+    protected $hidden = ["id","personal_id","created_at","updated_at","deleted_at"];
 
     protected $casts = [
         'hire_date' => 'date',

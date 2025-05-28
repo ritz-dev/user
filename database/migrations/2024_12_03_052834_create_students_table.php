@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('students', function (Blueprint $table) {
             $table->id();
             $table->string('slug')->unique();
-            $table->foreignId('personal_id')->constrained('personals')->onDelete('cascade');
-            $table->unique('personal_id');
+            $table->string('personal_slug')->unique();
             $table->string('student_name');
             $table->string('student_number')->unique();
             $table->string('registration_number')->unique()->nullable();
@@ -27,6 +26,10 @@ return new class extends Migration
             $table->enum('status', ['enrolled', 'graduated', 'suspended', 'inactive'])->default('enrolled');
             $table->date('graduation_date')->nullable();
             $table->date('admission_date')->nullable();
+
+            //Foreign key
+            $table->foreign('personal_slug')->references('slug')->on('personals')->onDelete('cascade');
+
             $table->softDeletes();
             $table->timestamps();
         });

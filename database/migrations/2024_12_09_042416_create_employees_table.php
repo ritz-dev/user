@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
             $table->uuid('slug')->unique();
-            $table->foreignId('personal_id')->constrained('personals')->onDelete('cascade');
+            $table->string('personal_slug')->unique();
             $table->string('employee_code')->unique();
             $table->string('email')->unique()->nullable();
             $table->string('phone')->unique()->nullable();
@@ -27,6 +27,10 @@ return new class extends Migration
             $table->integer('experience_years')->default(0);
             $table->decimal('salary', 10, 2)->default(0);
             $table->enum('status', ['active', 'resigned', 'on_leave', 'terminated'])->default('active');
+
+            //Foreign key
+            $table->foreign('personal_slug')->references('slug')->on('personals')->onDelete('cascade');
+
             $table->softDeletes();
             $table->timestamps();
         });

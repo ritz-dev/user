@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('guardians', function (Blueprint $table) {
             $table->id();
             $table->string('slug')->uniqid();
-            $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
-            $table->foreignId('personal_id')->constrained('personals')->onDelete('cascade');
+            $table->string('personal_slug');
+            $table->string('student_slug');
             $table->enum('relation', ['father', 'mother', 'guardian']);
             $table->string('occupation')->nullable();
             $table->string('phone')->unique()->nullable();
@@ -23,7 +23,11 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
 
-            $table->unique(['student_id', 'relation']);
+            //Foreign key
+            $table->foreign('personal_slug')->references('slug')->on('personals')->onDelete('cascade');
+            $table->foreign('student_slug')->references('slug')->on('students')->onDelete('cascade');
+
+            $table->unique(['student_slug', 'relation']);
         });
     }
 
