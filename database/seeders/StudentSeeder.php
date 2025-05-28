@@ -23,6 +23,7 @@ class StudentSeeder extends Seeder
         foreach ($studentPersonals as $index => $personal) {
             $student = Student::create([
                 'personal_id' => $personal->id,
+                'student_name' => $personal->full_name,
                 'student_number' => 'STU' . str_pad($index + 1, 5, '0', STR_PAD_LEFT),
                 'registration_number' => 'REG2024' . str_pad($index + 1, 3, '0', STR_PAD_LEFT),
                 'school_name' => 'Demo High School',

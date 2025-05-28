@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->uuid('slug')->unique();
             $table->foreignId('personal_id')->constrained('personals');
+            $table->string('teacher_name');
             $table->string('teacher_code')->unique();
             $table->string('email')->unique()->nullable();
             $table->string('phone')->unique()->nullable();

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->foreignId('personal_id')->constrained('personals')->onDelete('cascade');
             $table->unique('personal_id');
+            $table->string('student_name');
             $table->string('student_number')->unique();
             $table->string('registration_number')->unique()->nullable();
             $table->string('school_name');

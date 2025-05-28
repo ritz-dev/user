@@ -116,6 +116,7 @@ class TeacherController extends Controller
 
             $teacher = Teacher::create([
                 'personal_id' => $personal->id,
+                'teacher_name' => $personal->full_name, 
                 'teacher_code' => $request->teacher_code,
                 'email' => $request->email,
                 'phone' => $request->phone,
@@ -212,6 +213,7 @@ class TeacherController extends Controller
         try {
 
             $teacher->fill([
+                'teacher_name'     => $request->full_name,
                 'teacher_code'     => $request->teacher_code,
                 'email'            => $request->email,
                 'phone'            => $request->phone,

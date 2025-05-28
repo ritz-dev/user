@@ -130,6 +130,7 @@ class StudentController extends Controller
             // Create the student record
             $student = Student::create([
                 'personal_id' => $personal->id,
+                'student_name' => $personal->full_name,
                 'student_number' => $request->student_number,
                 'registration_number' => $request->registration_number,
                 'school_name' => $request->school_name,
@@ -264,6 +265,7 @@ class StudentController extends Controller
         try {
             // Update the student details
             $student->fill([
+                'student_name' => $request->full_name,
                 'student_number' => $request->student_number,
                 'registration_number' => $request->registration_number,
                 'school_name' => $request->school_name,
