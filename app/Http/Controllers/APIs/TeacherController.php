@@ -186,7 +186,7 @@ class TeacherController extends Controller
         $teacher->setRelation('personal', $personalData);
 
         // Return the teacher with either updated or original personal data
-        return response()->json($teacher);
+        return response()->json(['status' => 'OK! The request was successful', 'data' => $teacher], 201);
     }
 
     public function update(Request $request)
