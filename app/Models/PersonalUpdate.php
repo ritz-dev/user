@@ -14,10 +14,10 @@ class PersonalUpdate extends Model
         'personal_slug', 'full_name', 'birth_date', 'gender',
         'region_code', 'township_code', 'citizenship', 'serial_number',
         'nationality', 'religion', 'blood_type',
-        'updatable_id', 'updatable_type'
+        'updatable_slug', 'updatable_type'
     ];
 
-    protected $hidden = ["updated_id","updatable_id","updatable_type","created_at","updated_at","deleted_at"];
+    protected $hidden = ["updated_id","updatable_slug","updatable_type","created_at","updated_at","deleted_at"];
 
     public function personal()
     {

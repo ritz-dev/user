@@ -28,7 +28,7 @@ return new class extends Migration
             $table->enum('blood_type', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])->nullable();
 
             // Source role (e.g., Student, Employee)
-            $table->unsignedBigInteger('updatable_id');
+            $table->string('updatable_slug');
             $table->string('updatable_type');
             
             $table->timestamps();
