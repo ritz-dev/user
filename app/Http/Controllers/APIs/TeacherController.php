@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 
 class TeacherController extends Controller
@@ -19,6 +18,8 @@ class TeacherController extends Controller
     {
         try {
             $validated = $request->validate([
+                'slugs' => 'sometimes|array',
+                'slugs.*' => 'string|exists:teachers,slug',
                 'skip' => 'sometimes|integer|min:0|max:100',
                 'limit' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|string|max:255',
@@ -31,6 +32,10 @@ class TeacherController extends Controller
 
             // Build query with eager loading
             $query = Teacher::with('personal')->orderBy('teacher_name', 'asc');
+
+            if(!empty($validated['slugs'])) {
+                $query->whereIn('slug', $validated['slugs']);
+            }
 
             // Apply status filter if provided
             if ($status) {

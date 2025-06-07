@@ -11,10 +11,7 @@ use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\StudentResource;
-
 
 class StudentController extends Controller
 {
@@ -22,6 +19,8 @@ class StudentController extends Controller
     {
         try {
             $validated = $request->validate([
+                'slugs' => 'sometimes|array',
+                'slugs.*' => 'string|exists:students,slug',
                 'skip' => 'sometimes|integer|min:0|max:100',
                 'limit' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|string|max:255',
@@ -34,6 +33,11 @@ class StudentController extends Controller
 
             // Build query with eager loading
             $query = Student::with(['personal', 'guardians'])->orderBy('student_name', 'asc');
+
+            if(!empty($validated['slugs'])) {
+                // If slugs are provided, filter by slugs
+                $query->whereIn('slug', $validated['slugs']);
+            }
 
             // Apply status filter if provided
             if ($status) {
