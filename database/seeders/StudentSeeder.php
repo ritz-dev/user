@@ -18,8 +18,6 @@ class StudentSeeder extends Seeder
         $studentPersonals = Personal::take(30)->get();
         $guardianPersonals = Personal::take(30)->get();
 
-        $baseId = '1000000000000000000000000000000000';
-
         foreach ($studentPersonals as $index => $personal) {
             $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
 
