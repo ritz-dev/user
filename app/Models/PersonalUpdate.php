@@ -17,7 +17,7 @@ class PersonalUpdate extends Model
         'updatable_slug', 'updatable_type'
     ];
 
-    protected $hidden = ["updated_id","updatable_slug","updatable_type","created_at","updated_at","deleted_at"];
+    protected $hidden = ["id","updated_id","updatable_slug","updatable_type","created_at","updated_at","deleted_at"];
 
     public function personal()
     {

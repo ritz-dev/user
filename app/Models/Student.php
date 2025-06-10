@@ -27,7 +27,7 @@ class Student extends Model
         'graduation_date',
     ];
 
-    protected $hidden = ["personal_slug","created_at","updated_at","deleted_at"];
+    protected $hidden = ["id","personal_slug","created_at","updated_at","deleted_at"];
 
     protected $attributes = [
         'status' => 'enrolled',
