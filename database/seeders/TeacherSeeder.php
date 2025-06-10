@@ -17,7 +17,7 @@ class TeacherSeeder extends Seeder
         $teacherPersonals = Personal::skip(10)->take(5)->get();
         
         foreach ($teacherPersonals as $index => $personal) {
-            $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
+            $customId = generateCustomId($index);
 
             $teacher = Teacher::create([
                 'slug' => $customId, // Custom slug based on index

@@ -19,7 +19,7 @@ class StudentSeeder extends Seeder
         $guardianPersonals = Personal::take(30)->get();
 
         foreach ($studentPersonals as $index => $personal) {
-            $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
+            $customId = generateCustomId($index);
 
             $student = Student::create([
                 'slug' => $customId, // Custom slug based on index

@@ -52,7 +52,7 @@ class PersonalSeeder extends Seeder
         ];
 
         foreach ($people as $index => $person) {
-            $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
+            $customId = generateCustomId($index);
 
             Personal::create(array_merge($person, [
                 'slug' => $customId,

@@ -16,7 +16,7 @@ class EmployeeSeeder extends Seeder
         $employeePersonals = Personal::skip(15)->take(5)->get();
 
         foreach ($employeePersonals as $index => $personal) {
-            $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
+            $customId = generateCustomId($index);
 
             $employee = Employee::create([
                 'slug'             => $customId,  // Custom slug based on index
