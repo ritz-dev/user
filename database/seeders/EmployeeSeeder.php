@@ -14,7 +14,6 @@ class EmployeeSeeder extends Seeder
     public function run(): void
     {
         $employeePersonals = Personal::skip(15)->take(5)->get();
-        $baseId = '1000000000000000000000000000000000';
 
         foreach ($employeePersonals as $index => $personal) {
             $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
