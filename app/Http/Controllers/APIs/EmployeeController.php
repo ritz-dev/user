@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\EmployeeResource;
 
@@ -47,7 +46,7 @@ class EmployeeController extends Controller
                 });
             }
 
-            $total = $query->count();
+            $total = (clone $query)->count();
 
             if (!empty($validated['skip'])) {
                 $query->skip($validated['skip']);

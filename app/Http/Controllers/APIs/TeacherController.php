@@ -50,7 +50,7 @@ class TeacherController extends Controller
                 });
             }
 
-            $total = $query->count();
+            $total = (clone $query)->count();
 
             if (!empty($validated['skip'])) {
                 $query->skip($validated['skip']);

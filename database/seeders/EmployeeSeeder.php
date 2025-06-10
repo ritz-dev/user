@@ -14,10 +14,14 @@ class EmployeeSeeder extends Seeder
     public function run(): void
     {
         $employeePersonals = Personal::skip(15)->take(5)->get();
+        $baseId = '1000000000000000000000000000000000';
 
         foreach ($employeePersonals as $index => $personal) {
+            $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
+
             $employee = Employee::create([
-                'personal_slug'      => $personal->slug, // auto-create Personal if not already seeded
+                'slug'             => $customId,  // Custom slug based on index
+                'personal_slug'    => $personal->slug, // auto-create Personal if not already seeded
                 'employee_name'    => $personal->full_name,  // Use the full name from Personal
                 'employee_code'    => 'EMP' . str_pad($index + 1, 5, '0', STR_PAD_LEFT),
                 'email'            => 'employee' . ($index + 1) . '@company.com',
