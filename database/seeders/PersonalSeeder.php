@@ -51,8 +51,6 @@ class PersonalSeeder extends Seeder
             // ['full_name' => 'Nandar Khin Oo',        'region_code' => '03', 'township_code' => 'MDY',     'citizenship' => 'N', 'serial_number' => '100035', 'birth_date' => '2000-10-10', 'gender' => 'female', 'nationality' => 'American', 'religion' => 'Christian','blood_type' => 'B+'],
         ];
 
-        $baseId = '1000000000000000000000000000000000';
-
         foreach ($people as $index => $person) {
             $customId = '100000000000000000000000000000000' . str_pad($index, 1, '0', STR_PAD_LEFT);
 
