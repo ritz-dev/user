@@ -20,7 +20,7 @@ class StudentController extends Controller
         try {
             $validated = $request->validate([
                 'slugs' => 'sometimes|array',
-                'slugs.*' => 'string|exists:students,slug',
+                'slugs.*' => 'string',
                 'skip' => 'sometimes|integer|min:0|max:100',
                 'limit' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|string|max:255',
