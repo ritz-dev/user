@@ -30,7 +30,6 @@ class DatabaseSeeder extends Seeder
             EmployeeSeeder::class,
             StudentSeeder::class,
             TeacherSeeder::class,
-            StudentSectionSeeder::class,
         ]);
     }
 }
