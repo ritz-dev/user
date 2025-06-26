@@ -201,6 +201,7 @@ class StudentController extends Controller
                         'personal_slug' => $personalGuardian->slug,
                         'relation' => $guardianData['relation'],
                         'occupation' => $guardianData['occupation'] ?? null,
+                        'name' => $personalGuardian->full_name,
                         'phone' => $guardianData['phone'] ?? null,
                         'email' => $guardianData['email'] ?? null,
                     ]);
