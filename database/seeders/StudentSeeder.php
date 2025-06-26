@@ -45,6 +45,7 @@ class StudentSeeder extends Seeder
                 'student_slug' => $student->slug,
                 'personal_slug' => $guardianPersonal->slug,
                 'relation' => 'father', // or 'mother', 'guardian'
+                'name' => $guardianPersonal->full_name,
                 'occupation' => 'Government Staff',
                 'phone' => '09200000' . ($index + 1),
                 'email' => 'guardian' . ($index + 1) . '@example.com',

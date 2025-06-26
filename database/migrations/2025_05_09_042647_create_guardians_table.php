@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('guardians', function (Blueprint $table) {
             $table->id();
-            $table->string('slug')->uniqid();
+            $table->string('slug')->unique();
             $table->string('personal_slug');
             $table->string('student_slug');
             $table->enum('relation', ['father', 'mother', 'guardian']);
             $table->string('occupation')->nullable();
+            $table->string('name')->nullable();
             $table->string('phone')->unique()->nullable();
             $table->string('email')->unique()->nullable();
             $table->softDeletes();
