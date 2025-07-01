@@ -14,7 +14,7 @@ class TeacherSeeder extends Seeder
      */
     public function run(): void
     {
-        $teacherPersonals = Personal::skip(10)->take(5)->get();
+        $teacherPersonals = Personal::skip(25)->take(5)->get();
         
         foreach ($teacherPersonals as $index => $personal) {
             $customId = generateCustomId($index);

@@ -9,7 +9,6 @@ use Database\Seeders\StudentSeeder;
 use Database\Seeders\TeacherSeeder;
 use Database\Seeders\EmployeeSeeder;
 use Database\Seeders\PersonalSeeder;
-use Database\Seeders\StudentSectionSeeder;
 
 class DatabaseSeeder extends Seeder
 {
