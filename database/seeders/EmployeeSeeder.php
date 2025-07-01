@@ -13,7 +13,7 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
-        $employeePersonals = Personal::skip(20)->take(5)->get();
+        $employeePersonals = Personal::skip(40)->take(5)->get();
 
         foreach ($employeePersonals as $index => $personal) {
             $customId = generateCustomId($index);

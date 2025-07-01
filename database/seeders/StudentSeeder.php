@@ -15,8 +15,8 @@ class StudentSeeder extends Seeder
     public function run(): void
     {
 
-        $studentPersonals = Personal::take(10)->get();
-        $guardianPersonals = Personal::skip(10)->take(10)->get();
+        $studentPersonals = Personal::take(20)->get();
+        $guardianPersonals = Personal::skip(20)->take(20)->get();
 
         foreach ($studentPersonals as $index => $personal) {
             $customId = generateCustomId($index);
