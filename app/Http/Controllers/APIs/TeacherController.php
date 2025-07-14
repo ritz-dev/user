@@ -100,7 +100,7 @@ class TeacherController extends Controller
             'salary' => 'required|numeric|min:0',
             'hire_date' => 'required|date',
             'status' => 'required|in:active,resigned,on_leave',
-            'employment_type' => 'required|in:full-time,part-time,contract',
+            'employment_type' => 'required|string',
 
             'personal.full_name' => 'required|string',
             'personal.birth_date' => 'nullable|date',
