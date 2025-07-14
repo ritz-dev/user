@@ -122,7 +122,13 @@ class StudentController extends Controller
             'personal.blood_type' => 'nullable|string',
 
             'guardians' => 'nullable|array',
-            'guardians.*.name' => 'required|string',
+            'guardians.*.full_name' => 'required|string',
+            'guardians.*.birth_date' => 'nullable|date',
+            'guardians.*.region_code' => 'required|string',
+            'guardians.*.township_code' => 'required|string',
+            'guardians.*.serial_number' => 'required|string',
+            'guardians.*.nationality' => 'required|string',
+            'guardians.*.citizenship' => 'required|string',
             'guardians.*.relation' => 'required|string',
             'guardians.*.occupation' => 'nullable|string',
             'guardians.*.phone' => 'required|string',
@@ -186,14 +192,11 @@ class StudentController extends Controller
                         $personalGuardian = Personal::create([
                             'full_name' => $guardianData['full_name'],
                             'birth_date' => $guardianData['birth_date'],
-                            'gender' => $guardianData['gender'],
+                            'gender' => $guardianData['relation'] === 'Mother' ? 'female' : 'male',
                             'region_code' => $guardianData['region_code'],
                             'township_code' => $guardianData['township_code'],
                             'citizenship' => $guardianData['citizenship'],
                             'serial_number' => $guardianData['serial_number'],
-                            'nationality' => $guardianData['nationality'] ?? null,
-                            'religion' => $guardianData['religion'] ?? null,
-                            'blood_type' => $guardianData['blood_type'] ?? null,
                         ]);
                     }
 
