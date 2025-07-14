@@ -26,7 +26,7 @@ return new class extends Migration
             $table->decimal('salary',10,2);
             $table->date('hire_date');
             $table->enum('status', ['active', 'resigned', 'on_leave'])->default('active');
-            $table->enum('employment_type', ['full-time', 'part-time', 'contract'])->default('full-time');
+            $table->enum('employment_type', ['fulltime', 'parttime', 'contract'])->default('fulltime');
 
             //Foreign key
             $table->foreign('personal_slug')->references('slug')->on('personals')->onDelete('cascade');
