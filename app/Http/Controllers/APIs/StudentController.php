@@ -172,16 +172,42 @@ class StudentController extends Controller
             ]);
 
             // ✅ Create Guardians (if any)
-            $guardians = $request->input('guardians', []);
-            foreach ($guardians as $guardian) {
-                Guardian::create([
-                    'student_slug' => $studentSlug,
-                    'name' => $guardian['name'],
-                    'relation' => $guardian['relation'],
-                    'occupation' => $guardian['occupation'] ?? null,
-                    'phone' => $guardian['phone'],
-                ]);
-            }
+            foreach ($request->guardian as $guardianData) {
+
+                    // Check if personal record for guardian exists, if not, create it
+                    $personalGuardian = Personal::where('region_code', $guardianData['region_code'])
+                        ->where('township_code', $guardianData['township_code'])
+                        ->where('citizenship', $guardianData['citizenship'])
+                        ->where('serial_number', $guardianData['serial_number'])
+                        ->first();
+
+                    if (!$personalGuardian) {
+                        // Create a new personal record for the guardian if NRC fields do not exist
+                        $personalGuardian = Personal::create([
+                            'full_name' => $guardianData['full_name'],
+                            'birth_date' => $guardianData['birth_date'],
+                            'gender' => $guardianData['gender'],
+                            'region_code' => $guardianData['region_code'],
+                            'township_code' => $guardianData['township_code'],
+                            'citizenship' => $guardianData['citizenship'],
+                            'serial_number' => $guardianData['serial_number'],
+                            'nationality' => $guardianData['nationality'] ?? null,
+                            'religion' => $guardianData['religion'] ?? null,
+                            'blood_type' => $guardianData['blood_type'] ?? null,
+                        ]);
+                    }
+
+                    // Create guardian record and associate it with student and personal
+                    Guardian::create([
+                        'student_slug' => $student->slug,
+                        'personal_slug' => $personalGuardian->slug,
+                        'relation' => $guardianData['relation'],
+                        'occupation' => $guardianData['occupation'] ?? null,
+                        'name' => $personalGuardian->full_name,
+                        'phone' => $guardianData['phone'] ?? null,
+                        'email' => $guardianData['email'] ?? null,
+                    ]);
+                }
 
             DB::commit();
 
