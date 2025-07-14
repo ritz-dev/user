@@ -230,39 +230,82 @@ class StudentController extends Controller
 
     public function show(Request $request)
     {
-         // Validate the incoming request to ensure the 'slug' is provided
         $validated = $request->validate([
             'slug' => 'required|string|exists:students,slug',
         ]);
 
-        // Retrieve the student with personal and guardians
-        $student = Student::with(['guardians', 'personal']) // Include related models if needed
+        $student = Student::with(['personal', 'guardians.personal'])
             ->where('slug', $validated['slug'])
-            ->first();
+            ->firstOrFail();
 
-        if (!$student) {
-            return response()->json([
-                'status' => 'Not Found',
-                'message' => 'Stutdent not found'
-            ], 404);
-        }
-
-        // Check if a personal update exists for this student
-        $latestUpdate = PersonalUpdate::where('updatable_type', Student::class)
+        // Load latest personal update for student
+        $latestStudentPersonal = PersonalUpdate::where('updatable_type', Student::class)
             ->where('updatable_slug', $student->slug)
             ->where('personal_slug', $student->personal_slug)
             ->latest()
             ->first();
 
-        // Use updated personal if it exists, otherwise original
-        $personalData = $latestUpdate ?? $student->personal;
+        $studentPersonal = $latestStudentPersonal ?? $student->personal;
 
-        // Replace the student->personal with latest data (either original or updated)
-        $student->setRelation('personal', $personalData);
+        // Transform guardians with latest personal update
+        $guardians = $student->guardians->map(function ($guardian) {
+            $latest = PersonalUpdate::where('updatable_type', get_class($guardian))
+                ->where('updatable_slug', $guardian->slug)
+                ->where('personal_slug', $guardian->personal_slug)
+                ->latest()
+                ->first();
 
-        // Return the student with either updated or original personal data
-        return response()->json($student);
+            $personal = $latest ?? $guardian->personal;
+
+            return [
+                'slug'           => $guardian->slug,
+                'full_name'      => $personal->full_name,
+                'birth_date'     => $personal->birth_date,
+                'gender'         => $personal->gender,
+                'region_code'    => $personal->region_code,
+                'township_code'  => $personal->township_code,
+                'citizenship'    => $personal->citizenship,
+                'serial_number'  => $personal->serial_number,
+                'relation'       => $guardian->relation,
+                'occupation'     => $guardian->occupation,
+                'phone'          => $guardian->phone,
+                'email'          => $guardian->email,
+            ];
+        });
+
+        // Format student response
+        $response = [
+            'slug'                => $student->slug,
+            'student_name'        => $student->student_name,
+            'student_number'      => $student->student_number,
+            'registration_number' => $student->registration_number,
+            'school_name'         => $student->school_name,
+            'school_code'         => $student->school_code,
+            'email'               => $student->email,
+            'phone'               => $student->phone,
+            'address'             => $student->address,
+            'status'              => $student->status,
+            'graduation_date'     => $student->graduation_date,
+            'admission_date'      => $student->admission_date,
+            'personal' => [
+                'slug'           => $studentPersonal->slug,
+                'full_name'      => $studentPersonal->full_name,
+                'birth_date'     => $studentPersonal->birth_date,
+                'gender'         => $studentPersonal->gender,
+                'region_code'    => $studentPersonal->region_code,
+                'township_code'  => $studentPersonal->township_code,
+                'citizenship'    => $studentPersonal->citizenship,
+                'serial_number'  => $studentPersonal->serial_number,
+                'nationality'    => $studentPersonal->nationality,
+                'religion'       => $studentPersonal->religion,
+                'blood_type'     => $studentPersonal->blood_type,
+            ],
+            'guardians' => $guardians,
+        ];
+
+        return response()->json($response);
     }
+
 
     public function update(Request $request)
     {
