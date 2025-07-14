@@ -182,16 +182,14 @@ class TeacherController extends Controller
             ], 500);
         }
     }
+
     public function show(Request $request)
     {
         $validated = $request->validate([
             'slug' => 'required|string|exists:teachers,slug',
         ]);
 
-        // Retrieve the student with personal and guardians
-        $teacher = Teacher::with('personal') // Include related models if needed
-            ->where('slug', $validated['slug'])
-            ->first();
+        $teacher = Teacher::with('personal')->where('slug', $validated['slug'])->first();
 
         if (!$teacher) {
             return response()->json([
@@ -199,22 +197,48 @@ class TeacherController extends Controller
                 'message' => 'Teacher not found'
             ], 404);
         }
-        // Check if a personal update exists for this teacher
+
+        // Get latest personal update if exists
         $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
             ->where('updatable_slug', $teacher->slug)
             ->where('personal_slug', $teacher->personal_slug)
             ->latest()
             ->first();
 
-        // Use updated personal if it exists, otherwise original
-        $personalData = $latestUpdate ?? $teacher->personal;
+        $personal = $latestUpdate ?? $teacher->personal;
 
-        // Replace the teacher->personal with latest data (either original or updated)
-        $teacher->setRelation('personal', $personalData);
+        // Format response to match TeacherInput + Teacher interface
+        $response = [
+            'slug' => $teacher->slug,
+            'teacher_name' => $teacher->teacher_name,
+            'teacher_code' => $teacher->teacher_code,
+            'email' => $teacher->email,
+            'phone' => $teacher->phone,
+            'address' => $teacher->address,
+            'qualification' => $teacher->qualification,
+            'subject' => $teacher->subject,
+            'experience_years' => $teacher->experience_years,
+            'salary' => number_format((float) $teacher->salary, 2, '.', ''),
+            'hire_date' => $teacher->hire_date?->format('Y-m-d'),
+            'status' => $teacher->status,
+            'employment_type' => $teacher->employment_type,
+            'personal' => [
+                'full_name' => $personal->full_name,
+                'birth_date' => $personal->birth_date?->format('Y-m-d'),
+                'gender' => $personal->gender,
+                'region_code' => $personal->region_code,
+                'township_code' => $personal->township_code,
+                'citizenship' => $personal->citizenship,
+                'serial_number' => $personal->serial_number,
+                'nationality' => $personal->nationality,
+                'religion' => $personal->religion,
+                'blood_type' => $personal->blood_type,
+            ],
+        ];
 
         return response()->json([
             'status' => 'OK! The request was successful',
-            'data' => $teacher,
+            'data' => $response,
         ]);
     }
 
