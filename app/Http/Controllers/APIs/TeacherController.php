@@ -224,7 +224,7 @@ class TeacherController extends Controller
             'employment_type' => $teacher->employment_type,
             'personal' => [
                 'full_name' => $personal->full_name,
-                'birth_date' => $personal->birth_date?->format('Y-m-d'),
+                'birth_date' => $personal->birth_date->format('Y-m-d'),
                 'gender' => $personal->gender,
                 'region_code' => $personal->region_code,
                 'township_code' => $personal->township_code,
