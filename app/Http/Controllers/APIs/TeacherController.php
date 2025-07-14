@@ -236,10 +236,7 @@ class TeacherController extends Controller
             ],
         ];
 
-        return response()->json([
-            'status' => 'OK! The request was successful',
-            'data' => $response,
-        ]);
+        return response()->json($response);
     }
 
     public function update(Request $request)
