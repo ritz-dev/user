@@ -307,17 +307,17 @@ class StudentController extends Controller
     }
 
 
-    public function update(Request $request, string $slug)
+    public function update(Request $request)
     {
         try {
             // ✅ Validate input
             $validator = Validator::make($request->all(), [
-                'student_number' => 'required|string|unique:students,student_number,' . $slug . ',slug',
-                'registration_number' => 'nullable|string|unique:students,registration_number,' . $slug . ',slug',
+                'student_number' => 'required|string|unique:students,student_number,' . $request->slug . ',slug',
+                'registration_number' => 'nullable|string|unique:students,registration_number,' . $request->slug . ',slug',
                 'school_name' => 'required|string',
                 'school_code' => 'nullable|string',
-                'email' => 'nullable|email|unique:students,email,' . $slug . ',slug',
-                'phone' => 'nullable|string|unique:students,phone,' . $slug . ',slug',
+                'email' => 'nullable|email|unique:students,email,' . $request->slug . ',slug',
+                'phone' => 'nullable|string|unique:students,phone,' . $request->slug . ',slug',
                 'address' => 'nullable|string',
                 'status' => 'required|in:enrolled,graduated,suspended,inactive',
                 'graduation_date' => 'nullable|date',
@@ -356,7 +356,7 @@ class StudentController extends Controller
             DB::beginTransaction();
 
             // ✅ Fetch existing student
-            $student = Student::where('slug', $slug)->firstOrFail();
+            $student = Student::where('slug', $request->slug)->firstOrFail();
 
             // ✅ Update student fields
             $student->update([
