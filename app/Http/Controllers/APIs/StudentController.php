@@ -141,7 +141,6 @@ class StudentController extends Controller
             $personalSlug = Str::uuid()->toString();
 
             $personal = Personal::create([
-                'slug' => $personalSlug,
                 'full_name' => $personalData['full_name'],
                 'gender' => $personalData['gender'],
                 'birth_date' => $personalData['birth_date'] ?? null,
@@ -158,7 +157,6 @@ class StudentController extends Controller
             $studentSlug = Str::uuid()->toString();
 
             $student = Student::create([
-                'slug' => $studentSlug,
                 'personal_slug' => $personalSlug,
                 'student_name' => $personalData['full_name'],
                 'student_number' => $request->input('student_number'),
