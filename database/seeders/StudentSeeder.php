@@ -30,7 +30,7 @@ class StudentSeeder extends Seeder
                 'school_name' => 'Demo High School',
                 'school_code' => 'DHS001',
                 'email' => 'student' . ($index + 1) . '@example.com',
-                'phone' => '09100000' . ($index + 1),
+                'phone' => '+959100000' . ($index + 1),
                 'address' => 'Yangon Region',
                 'status' => 'enrolled',
                 'admission_date' => '2020-06-01',
