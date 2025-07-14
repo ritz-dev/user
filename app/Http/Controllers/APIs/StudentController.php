@@ -7,11 +7,13 @@ use Carbon\Carbon;
 use App\Models\Student;
 use App\Models\Guardian;
 use App\Models\Personal;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class StudentController extends Controller
 {
