@@ -11,6 +11,7 @@ use App\Models\PersonalUpdate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
 
 class TeacherController extends Controller
 {
@@ -88,18 +89,7 @@ class TeacherController extends Controller
 
     public function store(Request $request)
     {
-        try {
-        $validated = $request->validate([
-            // Personal fields
-            'full_name' => 'required|string|max:255',
-            'birth_date' => 'required|date',
-            'gender' => 'required|in:male,female,other',
-            'region_code' => 'required|string|max:10',
-            'township_code' => 'required|string|max:10',
-            'citizenship' => 'required|string|max:10',
-            'serial_number' => 'required|string|max:20',
-
-            // Teacher fields
+        $validator = Validator::make($request->all(), [
             'teacher_code' => 'required|string|unique:teachers,teacher_code',
             'email' => 'nullable|email|unique:teachers,email',
             'phone' => 'nullable|string|unique:teachers,phone',
@@ -109,77 +99,89 @@ class TeacherController extends Controller
             'experience_years' => 'nullable|integer|min:0',
             'salary' => 'required|numeric|min:0',
             'hire_date' => 'required|date',
-            'status' => 'nullable|in:active,resigned,on_leave',
-            'employment_type' => 'nullable|in:full-time,part-time,contract',
+            'status' => 'required|in:active,resigned,on_leave',
+            'employment_type' => 'required|in:full-time,part-time,contract',
+
+            'personal.full_name' => 'required|string',
+            'personal.birth_date' => 'nullable|date',
+            'personal.gender' => 'required|in:male,female',
+            'personal.region_code' => 'required|string',
+            'personal.township_code' => 'required|string',
+            'personal.citizenship' => 'required|string',
+            'personal.serial_number' => 'required|string',
+            'personal.nationality' => 'nullable|string',
+            'personal.religion' => 'nullable|string',
+            'personal.blood_type' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
 
-        try {
-            DB::beginTransaction();
-
-            $personal = Personal::where('region_code', $request->region_code)
-                ->where('township_code', $request->township_code)
-                ->where('citizenship', $request->citizenship)
-                ->where('serial_number', $request->serial_number)
-                ->first();
-       
-            if (!$personal) {
-                $personal = Personal::create([
-                    'full_name' => $request->full_name,
-                    'birth_date' => $request->birth_date,
-                    'gender' => $request->gender,
-                    'region_code' => $request->region_code,
-                    'township_code' => $request->township_code,
-                    'citizenship' => $request->citizenship,
-                    'serial_number' => $request->serial_number,
-                ]);
-            } else {
-                // Check if personal already used by a teacher
-                $existingTeacher = Teacher::where('personal_slug', $personal->slug)->first();
-                if ($existingTeacher) {
-                    return response()->json(['error' => 'This personal is already assigned to another teacher.'], 409);
-                }
-            }
-
-            $teacher = Teacher::create([
-                'personal_slug' => $personal->slug,
-                'teacher_name' => $personal->full_name, 
-                'teacher_code' => $request->teacher_code,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'qualification' => $request->qualification,
-                'subject' => $request->subject,
-                'experience_years' => $request->experience_years ?? 0,
-                'salary' => $request->salary,
-                'hire_date' => $request->hire_date,
-                'status' => $request->status ?? 'active',
-                'employment_type' => $request->employment_type ?? 'full-time',
-            ]);
-    
-            DB::commit();
-    
+        if ($validator->fails()) {
             return response()->json([
-                'message' => 'Teacher created successfully.', 
-                'data' => $teacher
-                ], 201);
-    
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create teacher: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        } catch (\Exception $e) {
+        DB::beginTransaction();
+
+        try {
+            $personalData = $request->input('personal');
+
+            // ✅ Check for existing personal by NRC (region, township, serial, citizenship)
+            $personal = Personal::where('region_code', $personalData['region_code'])
+                ->where('township_code', $personalData['township_code'])
+                ->where('serial_number', $personalData['serial_number'])
+                ->where('citizenship', $personalData['citizenship'])
+                ->first();
+
+            // ✅ Create personal if not exists
+            if (!$personal) {
+                $personal = Personal::create([
+                    'full_name' => $personalData['full_name'],
+                    'birth_date' => $personalData['birth_date'] ?? now()->toDateString(),
+                    'gender' => $personalData['gender'],
+                    'region_code' => $personalData['region_code'],
+                    'township_code' => $personalData['township_code'],
+                    'serial_number' => $personalData['serial_number'],
+                    'citizenship' => $personalData['citizenship'],
+                    'nationality' => $personalData['nationality'] ?? null,
+                    'religion' => $personalData['religion'] ?? null,
+                    'blood_type' => $personalData['blood_type'] ?? null,
+                ]);
+            }
+
+            // ✅ Create teacher
+            $teacher = Teacher::create([
+                'personal_slug' => $personal->slug,
+                'teacher_name' => $personal->full_name,
+                'teacher_code' => $request->input('teacher_code'),
+                'email' => $request->input('email'),
+                'phone' => $request->input('phone'),
+                'address' => $request->input('address'),
+                'qualification' => $request->input('qualification'),
+                'subject' => $request->input('subject'),
+                'experience_years' => $request->input('experience_years', 0),
+                'salary' => $request->input('salary'),
+                'hire_date' => $request->input('hire_date'),
+                'status' => $request->input('status', 'active'),
+                'employment_type' => strtolower($request->input('employment_type')),
+            ]);
+
+            DB::commit();
 
             return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Teacher created successfully.',
+                'data' => $teacher->load('personal')
+            ], 201);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Failed to create teacher.',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
-
     public function show(Request $request)
     {
         $validated = $request->validate([
