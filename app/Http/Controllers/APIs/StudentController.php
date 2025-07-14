@@ -307,126 +307,140 @@ class StudentController extends Controller
     }
 
 
-    public function update(Request $request)
+    public function update(Request $request, string $slug)
     {
-        try{
-        // Sanitize empty strings to null
-            $request->merge(array_map(function ($value) {
-                return $value === '' ? null : $value;
-            }, $request->all()));
-
-            $student = Student::where('slug', $request->slug)->with('personal')->firstOrFail();
-
-            // Validate the incoming request data
-            $validated = $request->validate([
-                // student
-                'slug' => 'required|string',
-                'student_number' => ['required', 'string', Rule::unique('students', 'student_number')->ignore($student->id)],
-                'registration_number' => 'nullable|string',
+        try {
+            // ✅ Validate input
+            $validator = Validator::make($request->all(), [
+                'student_number' => 'required|string|unique:students,student_number,' . $slug . ',slug',
+                'registration_number' => 'nullable|string|unique:students,registration_number,' . $slug . ',slug',
                 'school_name' => 'required|string',
                 'school_code' => 'nullable|string',
-                'email' => 'nullable|email',
-                'phone' => 'nullable|string',
+                'email' => 'nullable|email|unique:students,email,' . $slug . ',slug',
+                'phone' => 'nullable|string|unique:students,phone,' . $slug . ',slug',
                 'address' => 'nullable|string',
                 'status' => 'required|in:enrolled,graduated,suspended,inactive',
                 'graduation_date' => 'nullable|date',
                 'admission_date' => 'nullable|date',
 
-                // personal
-                'full_name' => 'required|string',
-                'birth_date' => 'required|date',
-                'gender' => 'required|in:male,female',
-                'region_code' => 'required|string',
-                'township_code' => 'required|string',
-                'citizenship' => 'required|string',
-                'serial_number' => 'required|string',
-                'nationality' => 'nullable|string',
-                'religion' => 'nullable|string',
-                'blood_type' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+                'personal.full_name' => 'required|string',
+                'personal.gender' => 'required|in:male,female,other',
+                'personal.birth_date' => 'nullable|date',
+                'personal.region_code' => 'required|string',
+                'personal.township_code' => 'required|string',
+                'personal.serial_number' => 'required|string',
+                'personal.nationality' => 'required|string',
+                'personal.citizenship' => 'required|string',
+                'personal.religion' => 'nullable|string',
+                'personal.blood_type' => 'nullable|string',
+
+                'guardians' => 'nullable|array',
+                'guardians.*.full_name' => 'required|string',
+                'guardians.*.birth_date' => 'nullable|date',
+                'guardians.*.region_code' => 'required|string',
+                'guardians.*.township_code' => 'required|string',
+                'guardians.*.serial_number' => 'required|string',
+                'guardians.*.citizenship' => 'required|string',
+                'guardians.*.relation' => 'required|string',
+                'guardians.*.occupation' => 'nullable|string',
+                'guardians.*.phone' => 'required|string',
             ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
 
             DB::beginTransaction();
 
-            try {
-                // Update the student details
-                $student->fill([
-                    'student_name' => $request->full_name,
-                    'student_number' => $request->student_number,
-                    'registration_number' => $request->registration_number,
-                    'school_name' => $request->school_name,
-                    'school_code' => $request->school_code,
-                    'email' => $request->email,
-                    'phone' => $request->phone,
-                    'address' => $request->address,
-                    'status' => $request->status,
-                    'graduation_date' => $request->graduation_date,
-                    'admission_date' => $request->admission_date,
-                ])->save();
+            // ✅ Fetch existing student
+            $student = Student::where('slug', $slug)->firstOrFail();
 
-                // Check if any personal field has changed
-                $fields = [
-                    'full_name', 'birth_date', 'gender',
-                    'region_code', 'township_code', 'citizenship',
-                    'serial_number', 'nationality', 'religion', 'blood_type'
-                ];
+            // ✅ Update student fields
+            $student->update([
+                'student_number' => $request->input('student_number'),
+                'registration_number' => $request->input('registration_number'),
+                'school_name' => $request->input('school_name'),
+                'school_code' => $request->input('school_code'),
+                'email' => $request->input('email'),
+                'phone' => $request->input('phone'),
+                'address' => $request->input('address'),
+                'status' => $request->input('status', 'enrolled'),
+                'graduation_date' => $request->input('graduation_date'),
+                'admission_date' => $request->input('admission_date'),
+            ]);
 
-                $hasChanges = false;
+            // ✅ Update related personal
+            $personalData = $request->input('personal');
+            $student->personal->update([
+                'full_name' => $personalData['full_name'],
+                'gender' => $personalData['gender'],
+                'birth_date' => $personalData['birth_date'] ?? null,
+                'region_code' => $personalData['region_code'],
+                'township_code' => $personalData['township_code'],
+                'serial_number' => $personalData['serial_number'],
+                'nationality' => $personalData['nationality'],
+                'citizenship' => $personalData['citizenship'],
+                'religion' => $personalData['religion'] ?? null,
+                'blood_type' => $personalData['blood_type'] ?? null,
+            ]);
 
-                foreach ($fields as $field) {
-                    $original = $student->personal->$field;
-                    $new = $request->input($field);
+            // ✅ Update Guardians
+            if ($request->filled('guardians')) {
+                // Optional: Delete existing guardians and recreate (simpler logic)
+                Guardian::where('student_slug', $student->slug)->delete();
 
-                    if ($field === 'birth_date') {
-                        $original = \Carbon\Carbon::parse($original)->toDateString();
-                        $new = \Carbon\Carbon::parse($new)->toDateString();
+                foreach ($request->guardians as $guardianData) {
+                    // Lookup or create personal record for guardian
+                    $personalGuardian = Personal::where('region_code', $guardianData['region_code'])
+                        ->where('township_code', $guardianData['township_code'])
+                        ->where('citizenship', $guardianData['citizenship'])
+                        ->where('serial_number', $guardianData['serial_number'])
+                        ->first();
+
+                    if (!$personalGuardian) {
+                        $personalGuardian = Personal::create([
+                            'full_name' => $guardianData['full_name'],
+                            'birth_date' => $guardianData['birth_date'] ?? null,
+                            'gender' => $guardianData['relation'] === 'Mother' ? 'female' : 'male',
+                            'region_code' => $guardianData['region_code'],
+                            'township_code' => $guardianData['township_code'],
+                            'citizenship' => $guardianData['citizenship'],
+                            'serial_number' => $guardianData['serial_number'],
+                        ]);
                     }
 
-                    if ($original !== $new) {
-                        $hasChanges = true;
-                        break;
-                    }
-                }
-
-                if ($hasChanges) {
-                    PersonalUpdate::create([
-                        'personal_slug'    => $student->personal->slug,
-                        'full_name'      => $request->full_name,
-                        'birth_date'     => $request->birth_date,
-                        'gender'         => $request->gender,
-                        'region_code'    => $request->region_code,
-                        'township_code'  => $request->township_code,
-                        'citizenship'    => $request->citizenship,
-                        'serial_number'  => $request->serial_number,
-                        'nationality'    => $request->nationality,
-                        'religion'       => $request->religion,
-                        'blood_type'     => $request->blood_type,
-                        'updatable_slug'   => $student->slug,
-                        'updatable_type' => Student::class,
+                    // Create guardian
+                    Guardian::create([
+                        'student_slug' => $student->slug,
+                        'personal_slug' => $personalGuardian->slug,
+                        'relation' => $guardianData['relation'],
+                        'occupation' => $guardianData['occupation'] ?? null,
+                        'name' => $personalGuardian->full_name,
+                        'phone' => $guardianData['phone'],
+                        'email' => $guardianData['email'] ?? null,
                     ]);
                 }
-
-                DB::commit();
-
-                return response()->json([
-                    'message' => 'Student updated successfully',
-                    'data' => $student->load('personal')
-                ], 200);
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => $e->getMessage()
-                    ], 500);
             }
-        } catch (\Exception $e) {
+
+            DB::commit();
 
             return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Student updated successfully.',
+                'data' => $student->load('personal', 'guardians'),
+            ]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to update student.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
+
 
     public function handleAction(Request $request)
     {
