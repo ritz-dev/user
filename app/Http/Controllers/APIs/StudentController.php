@@ -177,7 +177,7 @@ class StudentController extends Controller
             ]);
 
             // ✅ Create Guardians (if any)
-            foreach ($request->guardian as $guardianData) {
+            foreach ($request->guardians as $guardianData) {
 
                     // Check if personal record for guardian exists, if not, create it
                     $personalGuardian = Personal::where('region_code', $guardianData['region_code'])
