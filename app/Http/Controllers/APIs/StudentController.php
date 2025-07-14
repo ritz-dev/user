@@ -95,6 +95,8 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
+        try {
+
         // ✅ Validate the input
         $validator = Validator::make($request->all(), [
             'student_number' => 'required|string|unique:students,student_number',
@@ -135,12 +137,10 @@ class StudentController extends Controller
 
         DB::beginTransaction();
 
-        try {
             // ✅ Create Personal
             $personalData = $request->input('personal');
-            $personalSlug = Str::uuid()->toString();
 
-            $personal = Personal::create([
+            $personalData = Personal::create([
                 'full_name' => $personalData['full_name'],
                 'gender' => $personalData['gender'],
                 'birth_date' => $personalData['birth_date'] ?? null,
@@ -157,8 +157,8 @@ class StudentController extends Controller
             $studentSlug = Str::uuid()->toString();
 
             $student = Student::create([
-                'personal_slug' => $personalSlug,
-                'student_name' => $personalData['full_name'],
+                'personal_slug' => $personalData->slug,
+                'student_name' => $personalData->full_name,
                 'student_number' => $request->input('student_number'),
                 'registration_number' => $request->input('registration_number'),
                 'school_name' => $request->input('school_name'),
