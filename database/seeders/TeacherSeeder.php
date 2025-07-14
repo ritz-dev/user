@@ -33,7 +33,7 @@ class TeacherSeeder extends Seeder
                 'salary' => 30000.00,
                 'hire_date' => now(),
                 'status' => 'active',
-                'employment_type' => 'full-time',
+                'employment_type' => 'fulltime',
             ]);
         }
     }
