@@ -261,10 +261,7 @@ class StudentController extends Controller
         $student->setRelation('personal', $personalData);
 
         // Return the student with either updated or original personal data
-        return response()->json([
-            'status' => 'OK! The request was successful',
-            'data' => $student,
-        ]);
+        return response()->json($student);
     }
 
     public function update(Request $request)
