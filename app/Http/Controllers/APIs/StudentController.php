@@ -127,7 +127,6 @@ class StudentController extends Controller
             'guardians.*.region_code' => 'required|string',
             'guardians.*.township_code' => 'required|string',
             'guardians.*.serial_number' => 'required|string',
-            'guardians.*.nationality' => 'required|string',
             'guardians.*.citizenship' => 'required|string',
             'guardians.*.relation' => 'required|string',
             'guardians.*.occupation' => 'nullable|string',
