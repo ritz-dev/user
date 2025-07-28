@@ -3,17 +3,17 @@
 namespace App\Http\Controllers\APIs;
 
 use Exception;
-use Carbon\Carbon;
 use App\Models\Student;
 use App\Models\Guardian;
 use App\Models\Personal;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Validator;
+use Illuminate\Validation\ValidationException;
 
 class StudentController extends Controller
 {
@@ -21,41 +21,53 @@ class StudentController extends Controller
     {
         try {
             $validated = $request->validate([
-                'slugs' => 'sometimes|array',
-                'slugs.*' => 'string',
-                'skip' => 'sometimes|integer|min:0|max:100',
-                'limit' => 'sometimes|integer|min:1|max:100',
-                'search' => 'sometimes|string|max:255',
-                'status' => 'sometimes|in:active,resigned,on_leave,terminated',
+                'slugs'    => ['nullable', 'array'],
+                'slugs.*'  => ['string'],
+                'search'    => ['nullable', 'array'],
+                'status'   => ['nullable', 'in:active,resigned,on_leave,terminated'],
+                'orderBy'  => ['nullable', 'in:student_name,student_number,status'],
+                'sortedBy' => ['nullable', 'in:asc,desc'],
+                'limit'    => ['nullable', 'integer', 'min:1', 'max:100'],
+                'skip'     => ['nullable', 'integer', 'min:0', 'max:1000'],
             ]);
 
-            $limit = $validated['limit'] ?? null;
-            $search = $validated['search'] ?? null;
-            $status = $validated['status'] ?? null;
-
-            // Build query with eager loading
             $query = Student::with(['personal', 'guardians'])->orderBy('student_name', 'asc');
 
-            if(!empty($validated['slugs'])) {
-                // If slugs are provided, filter by slugs
+            // Filter by slugs if provided
+            if (!empty($validated['slugs'])) {
                 $query->whereIn('slug', $validated['slugs']);
             }
 
-            // Apply status filter if provided
-            if ($status) {
-                $query->where('status', $status);
+            // Filter by status if provided
+            if (!empty($validated['status'])) {
+                $query->where('status', $validated['status']);
             }
 
-            // Apply search filter if provided
-            if ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('student_name', 'like', "%{$search}%")
-                    ->orWhere('student_number', 'like', "%{$search}%");
-                });
+            if (!empty($validated['search'])) {
+                $filter = $validated['search'];
+                $allowedFields = ['student_name', 'student_number', 'status'];
+
+                foreach ($filter as $column => $value) {
+                    if (!in_array($column, $allowedFields)) {
+                        continue; // Skip unsupported fields
+                    }
+
+                    // Apply case-insensitive partial match
+                    $query->whereRaw("LOWER($column) LIKE ?", [strtolower($value) . '%']);
+                }
             }
 
+            // Ordering
+            if (!empty($validated['orderBy'])) {
+                $query->orderBy($validated['orderBy'], $validated['sortedBy'] ?? 'asc');
+            } else {
+                $query->orderByDesc('id');
+            }
+
+            // Total count before pagination
             $total = (clone $query)->count();
 
+            // Pagination
             if (!empty($validated['skip'])) {
                 $query->skip($validated['skip']);
             }
@@ -65,7 +77,7 @@ class StudentController extends Controller
 
             $students = $query->get();
 
-            // Replace 'personal' relation with latest update if available
+            // Replace personal relation with latest update if exists
             $students->transform(function ($student) {
                 $latestUpdate = PersonalUpdate::where('updatable_type', Student::class)
                     ->where('updatable_slug', $student->slug)
@@ -77,18 +89,23 @@ class StudentController extends Controller
                 return $student;
             });
 
-            // Respond with paginated or simple data
             return response()->json([
-                'status' => 'OK! The request was successful',
-                'total' => $total,
-                'data' => $students,
+                'status' => 'success',
+                'total'  => $total,
+                'data'   => $students,
             ], 200);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'validation_error',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
+            \Log::error('Student index error', ['error' => $e->getMessage()]);
 
             return response()->json([
-                'status' => 'false',
-                'error' => $e->getMessage()
+                'status'  => 'error',
+                'message' => 'Failed to retrieve students.',
             ], 500);
         }
     }
@@ -98,7 +115,7 @@ class StudentController extends Controller
         try {
 
         // ✅ Validate the input
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'student_number' => 'required|string|unique:students,student_number',
             'registration_number' => 'nullable|string|unique:students,registration_number',
             'school_name' => 'required|string',
@@ -121,7 +138,7 @@ class StudentController extends Controller
             'personal.religion' => 'nullable|string',
             'personal.blood_type' => 'nullable|string',
 
-            'guardians' => 'nullable|array',
+            'guardians' => 'required|array',
             'guardians.*.full_name' => 'required|string',
             'guardians.*.birth_date' => 'nullable|date',
             'guardians.*.region_code' => 'required|string',
@@ -132,13 +149,6 @@ class StudentController extends Controller
             'guardians.*.occupation' => 'nullable|string',
             'guardians.*.phone' => 'required|string',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         DB::beginTransaction();
 
@@ -218,7 +228,14 @@ class StudentController extends Controller
                 'data' => $student->load('personal', 'guardians')
             ], 201);
 
-        } catch (\Throwable $e) {
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            \Log::error('Student store error', ['error' => $e->getMessage()]);
+
             DB::rollBack();
 
             return response()->json([
@@ -311,7 +328,8 @@ class StudentController extends Controller
     {
         try {
             // ✅ Validate input
-            $validator = Validator::make($request->all(), [
+            $validated = $request->validate([
+                'slug' => 'required|string|exists:students,slug',
                 'student_number' => 'required|string|unique:students,student_number,' . $request->slug . ',slug',
                 'registration_number' => 'nullable|string|unique:students,registration_number,' . $request->slug . ',slug',
                 'school_name' => 'required|string',
@@ -345,13 +363,6 @@ class StudentController extends Controller
                 'guardians.*.occupation' => 'nullable|string',
                 'guardians.*.phone' => 'required|string',
             ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
 
             DB::beginTransaction();
 
@@ -432,6 +443,20 @@ class StudentController extends Controller
                 'data' => $student->load('personal', 'guardians'),
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            Log::error('Student update error', ['error' => $e->getMessage()]);
+
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Failed to update student.',
+                'error' => $e->getMessage(),
+            ], 500);
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json([

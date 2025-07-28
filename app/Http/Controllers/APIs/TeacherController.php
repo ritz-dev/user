@@ -11,7 +11,7 @@ use App\Models\PersonalUpdate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class TeacherController extends Controller
 {
@@ -23,7 +23,7 @@ class TeacherController extends Controller
                 'slugs.*' => 'string',
                 'skip' => 'sometimes|integer|min:0|max:100',
                 'limit' => 'sometimes|integer|min:1|max:100',
-                'search' => 'sometimes|string|max:255',
+                'search'    => ['nullable', 'array'],
                 'status' => 'sometimes|in:active,resigned,on_leave',
             ]);
 
@@ -44,11 +44,18 @@ class TeacherController extends Controller
             }
 
             // Apply search filter if provided
-            if ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('teacher_name', 'like', "%{$search}%")
-                    ->orWhere('teacher_code', 'like', "%{$search}%");
-                });
+            if (!empty($validated['search'])) {
+                $filter = $validated['search'];
+                $allowedFields = ['teacher_name', 'teacher_code', 'status'];
+
+                foreach ($filter as $column => $value) {
+                    if (!in_array($column, $allowedFields)) {
+                        continue; // Skip unsupported fields
+                    }
+
+                    // Apply case-insensitive partial match
+                    $query->whereRaw("LOWER($column) LIKE ?", [strtolower($value) . '%']);
+                }
             }
 
             $total = (clone $query)->count();
@@ -79,6 +86,12 @@ class TeacherController extends Controller
                 'data' => $results,
             ], 200);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->validator->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -89,7 +102,7 @@ class TeacherController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = $request->validate([
             'teacher_code' => 'required|string|unique:teachers,teacher_code',
             'email' => 'nullable|email|unique:teachers,email',
             'phone' => 'nullable|string|unique:teachers,phone',
@@ -113,13 +126,6 @@ class TeacherController extends Controller
             'personal.religion' => 'nullable|string',
             'personal.blood_type' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
 
         DB::beginTransaction();
 
@@ -173,6 +179,12 @@ class TeacherController extends Controller
                 'data' => $teacher->load('personal')
             ], 201);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->validator->errors()
+            ], 422);
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -280,79 +292,75 @@ class TeacherController extends Controller
 
             DB::beginTransaction();
 
-            try {
 
-                $teacher->fill([
-                    'teacher_name'     => $request->full_name,
-                    'teacher_code'     => $request->teacher_code,
-                    'email'            => $request->email,
-                    'phone'            => $request->phone,
-                    'address'          => $request->address,
-                    'qualification'    => $request->qualification,
-                    'subject'          => $request->subject,
-                    'experience_years' => $request->experience_years ?? 0,
-                    'salary'           => $request->salary,
-                    'hire_date'        => $request->hire_date,
-                    'status'           => $request->status,
-                    'employment_type'  => $request->employment_type,
-                ])->save();
+            $teacher->fill([
+                'teacher_name'     => $request->full_name,
+                'teacher_code'     => $request->teacher_code,
+                'email'            => $request->email,
+                'phone'            => $request->phone,
+                'address'          => $request->address,
+                'qualification'    => $request->qualification,
+                'subject'          => $request->subject,
+                'experience_years' => $request->experience_years ?? 0,
+                'salary'           => $request->salary,
+                'hire_date'        => $request->hire_date,
+                'status'           => $request->status,
+                'employment_type'  => $request->employment_type,
+            ])->save();
 
-                $fields = [
-                    'full_name', 'birth_date', 'gender',
-                    'region_code', 'township_code', 'citizenship',
-                    'serial_number', 'nationality', 'religion', 'blood_type'
-                ];
+            $fields = [
+                'full_name', 'birth_date', 'gender',
+                'region_code', 'township_code', 'citizenship',
+                'serial_number', 'nationality', 'religion', 'blood_type'
+            ];
 
-                $hasChanges = false;
+            $hasChanges = false;
 
-                foreach ($fields as $field) {
-                    $original = $teacher->personal->$field;
-                    $new = $request->input($field);
+            foreach ($fields as $field) {
+                $original = $teacher->personal->$field;
+                $new = $request->input($field);
 
-                    if ($field === 'birth_date') {
-                        $original = \Carbon\Carbon::parse($original)->toDateString();
-                        $new = \Carbon\Carbon::parse($new)->toDateString();
-                    }
-
-                    if ($original !== $new) {
-                        $hasChanges = true;
-                        break;
-                    }
+                if ($field === 'birth_date') {
+                    $original = \Carbon\Carbon::parse($original)->toDateString();
+                    $new = \Carbon\Carbon::parse($new)->toDateString();
                 }
 
-                if ($hasChanges) {
-                    PersonalUpdate::create([
-                        'personal_slug'    => $teacher->personal->slug,
-                        'full_name'      => $request->full_name,
-                        'birth_date'     => $request->birth_date,
-                        'gender'         => $request->gender,
-                        'region_code'    => $request->region_code,
-                        'township_code'  => $request->township_code,
-                        'citizenship'    => $request->citizenship,
-                        'serial_number'  => $request->serial_number,
-                        'nationality'    => $request->nationality,
-                        'religion'       => $request->religion,
-                        'blood_type'     => $request->blood_type,
-                        'updatable_slug'   => $teacher->slug,
-                        'updatable_type' => Teacher::class,
-                    ]);
+                if ($original !== $new) {
+                    $hasChanges = true;
+                    break;
                 }
-
-                DB::commit();
-
-                return response()->json([
-                    'message' => 'Teacher updated successfully.',
-                    'data' => $teacher->load('personal'),
-                ]);
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ], 500);
             }
+
+            if ($hasChanges) {
+                PersonalUpdate::create([
+                    'personal_slug'    => $teacher->personal->slug,
+                    'full_name'      => $request->full_name,
+                    'birth_date'     => $request->birth_date,
+                    'gender'         => $request->gender,
+                    'region_code'    => $request->region_code,
+                    'township_code'  => $request->township_code,
+                    'citizenship'    => $request->citizenship,
+                    'serial_number'  => $request->serial_number,
+                    'nationality'    => $request->nationality,
+                    'religion'       => $request->religion,
+                    'blood_type'     => $request->blood_type,
+                    'updatable_slug'   => $teacher->slug,
+                    'updatable_type' => Teacher::class,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Teacher updated successfully.',
+                'data' => $teacher->load('personal'),
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->validator->errors()
+            ], 422);
         } catch (\Exception $e) {
 
             return response()->json([
@@ -410,5 +418,4 @@ class TeacherController extends Controller
                 return response()->json(['message' => 'Invalid action'], 400);
         }
     }
-
 }

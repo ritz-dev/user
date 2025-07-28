@@ -2,17 +2,23 @@
 
 namespace App\Models;
 
+use App\Models\Student;
+use App\Models\Personal;
 use Ramsey\Uuid\Guid\Guid;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Guardian extends Model
 {
+    use HasFactory;
+    
     protected $fillable = [
         'slug',
         'student_slug',
         'personal_slug',
         'relation',
         'occupation',
+        'name',
         'phone',
         'email',
     ];

@@ -5,9 +5,12 @@ namespace App\Models;
 use App\Models\Personal;
 use Workbench\App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PersonalUpdate extends Model
 {
+    use HasFactory;
+    
     protected $primaryKey = 'updated_id';
 
     protected $fillable = [

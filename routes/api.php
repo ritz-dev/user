@@ -7,9 +7,9 @@ use App\Http\Controllers\APIs\TeacherController;
 use App\Http\Controllers\APIs\EmployeeController;
 use App\Http\Controllers\APIs\PersonalController;
 
-Route::prefix('personals')->group(function(){
-    Route::post('/',[PersonalController::class,'index']);
-});
+// Route::prefix('personals')->group(function(){
+//     Route::post('/',[PersonalController::class,'index']);
+// });
 
 Route::prefix('students')->group(function(){
     Route::post('/',[StudentController::class,'index']);
@@ -17,8 +17,7 @@ Route::prefix('students')->group(function(){
     Route::post('show',[StudentController::class,'show']);
     Route::post('update',[StudentController::class,'update']);
     Route::post('action',[StudentController::class,'handleAction']);
-    Route::post('enrollment',[StudentController::class,'enrollment']);
-    // Route::post('by-section',[StudentController::class,'bySection']);
+    // Route::post('enrollment',[StudentController::class,'enrollment']);
 });
 
 Route::prefix('teachers')->group(function(){

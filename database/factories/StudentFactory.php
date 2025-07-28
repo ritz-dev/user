@@ -2,41 +2,38 @@
 
 namespace Database\Factories;
 
+use App\Models\Student;
 use App\Models\Personal;
-use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Student>
  */
 class StudentFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    
+    protected $model = Student::class;
+
     public function definition(): array
     {
-        static $studentCounter = 1;
+        // Create a related personal first
+        $personal = Personal::factory()->create();
 
         return [
-            'slug' => (string) Str::uuid(),
-            'personal_id' => Personal::inRandomOrder()->value('id') ?? 1, // Fallback to 1 if no records exist
-            'student_code' => 'STU-' . str_pad($studentCounter++, 4, '0', STR_PAD_LEFT),
-            'name' => 'Student ' . $studentCounter,
-            'address' => '123 Main St, City, Country',
-            'email' => 'student' . $studentCounter . '@example.com',
-            'phonenumber' => '123-456-7890',
-            'pob' => 'Sample City',
-            'nationality' => 'Sample Nationality',
-            'religion' => 'Sample Religion',
-            'blood_type' => 'A',
-            'status' => 'active',
-            'academic_level' => 'Primary 1',
-            'academic_year' => '2025-2026',
-            'enrollment_date' => '2025-01-16',
-            'graduation_date' => '2026-12-30',
+            'slug' => Str::uuid()->toString(),
+            'personal_slug' => $personal->slug,
+            'student_name' => $this->faker->name(),
+            'student_number' => strtoupper(Str::random(10)),
+            'registration_number' => strtoupper(Str::random(8)),
+            'school_name' => $this->faker->company . ' High School',
+            'school_code' => strtoupper(Str::random(6)),
+            'email' => $this->faker->unique()->safeEmail(),
+            'phone' => $this->faker->unique()->phoneNumber(),
+            'address' => $this->faker->address(),
+            'status' => $this->faker->randomElement(['enrolled', 'graduated', 'suspended', 'inactive']),
+            'graduation_date' => $this->faker->optional()->date(),
+            'admission_date' => $this->faker->optional()->date(),
         ];
     }
 }

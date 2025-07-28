@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Ramsey\Uuid\Guid\Guid;
+use App\Models\PersonalUpdate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Personal extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasFactory;
 
     protected $fillable = [
         'slug',
