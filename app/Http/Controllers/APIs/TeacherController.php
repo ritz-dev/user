@@ -8,7 +8,6 @@ use App\Models\Teacher;
 use App\Models\Personal;
 use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Validation\ValidationException;
@@ -19,17 +18,15 @@ class TeacherController extends Controller
     {
         try {
             $validated = $request->validate([
-                'slugs' => 'sometimes|array',
-                'slugs.*' => 'string',
-                'skip' => 'sometimes|integer|min:0|max:100',
-                'limit' => 'sometimes|integer|min:1|max:100',
+                'slugs'    => ['nullable', 'array'],
+                'slugs.*'  => ['string'],
                 'search'    => ['nullable', 'array'],
-                'status' => 'sometimes|in:active,resigned,on_leave',
+                'status'   => ['nullable', 'in:active,resigned,on_leave,terminated'],
+                'orderBy'  => ['nullable', 'in:student_name,student_number,status'],
+                'sortedBy' => ['nullable', 'in:asc,desc'],
+                'limit'    => ['nullable', 'integer', 'min:1', 'max:100'],
+                'skip'     => ['nullable', 'integer', 'min:0', 'max:1000'],
             ]);
-
-            $limit = $validated['limit'] ?? null;
-            $search = $validated['search'] ?? null;
-            $status = $validated['status'] ?? null;
 
             // Build query with eager loading
             $query = Teacher::with('personal')->orderBy('teacher_name', 'asc');
@@ -39,8 +36,8 @@ class TeacherController extends Controller
             }
 
             // Apply status filter if provided
-            if ($status) {
-                $query->where('status', $status);
+            if (!empty($validated['status'])) {
+                $query->where('status', $validated['status']);
             }
 
             // Apply search filter if provided
@@ -58,6 +55,13 @@ class TeacherController extends Controller
                 }
             }
 
+            // Ordering
+            if (!empty($validated['orderBy'])) {
+                $query->orderBy($validated['orderBy'], $validated['sortedBy'] ?? 'asc');
+            } else {
+                $query->orderByDesc('id');
+            }
+
             $total = (clone $query)->count();
 
             if (!empty($validated['skip'])) {
@@ -67,9 +71,9 @@ class TeacherController extends Controller
                 $query->take($validated['limit']);
             }
 
-            $results = $query->get();
+            $teacher = $query->get();
 
-            $results->transform(function ($teacher) {
+            $teacher->transform(function ($teacher) {
                 $latestUpdate = PersonalUpdate::where('updatable_type', Teacher::class)
                     ->where('updatable_slug', $teacher->slug)
                     ->where('personal_slug', $teacher->personal_slug)
@@ -83,7 +87,7 @@ class TeacherController extends Controller
             return response()->json([
                 'status' => 'OK! The request was successful',
                 'total' => $total,
-                'data' => $results,
+                'data' => $teacher,
             ], 200);
 
         } catch (ValidationException $e) {
@@ -93,6 +97,8 @@ class TeacherController extends Controller
                 'errors' => $e->validator->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Teacher index error', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -186,6 +192,7 @@ class TeacherController extends Controller
                 'errors' => $e->validator->errors()
             ], 422);
         } catch (\Throwable $e) {
+            \Log::error('Student index error', ['error' => $e->getMessage()]);
             DB::rollBack();
 
             return response()->json([
@@ -197,9 +204,10 @@ class TeacherController extends Controller
 
     public function show(Request $request)
     {
-        $validated = $request->validate([
-            'slug' => 'required|string|exists:teachers,slug',
-        ]);
+        try {
+            $validated = $request->validate([
+                'slug' => 'required|string|exists:teachers,slug',
+            ]);
 
         $teacher = Teacher::with('personal')->where('slug', $validated['slug'])->first();
 
@@ -250,24 +258,32 @@ class TeacherController extends Controller
 
         return response()->json($response);
     }
+        catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->validator->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Teacher index error', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function update(Request $request)
     {
         try{
-            $request->merge(array_map(function ($value) {
-                return $value === '' ? null : $value;
-            }, $request->all()));
-
-            $teacher = Teacher::where('slug', $request->slug)->with('personal')->firstOrFail();
-
-            
 
             $validated = $request->validate([
                 // teacher
-                'slug' => 'required|string',
-                'teacher_code' => ['required', 'string', Rule::unique('teachers', 'teacher_code')->ignore($teacher->id)],
-                'email' => ['nullable', 'email', Rule::unique('teachers', 'email')->ignore($teacher->id)],
-                'phone' => ['nullable', 'string', Rule::unique('teachers', 'phone')->ignore($teacher->id)],
+                'slug' => 'required|string|exists:teachers,slug',
+                'teacher_code' => ['required', 'string','unique:teachers,teacher_code,' . $request->slug . ',slug'],
+                'email' => ['nullable', 'email', 'unique:teachers,email,' . $request->slug . ',slug'],
+                'phone' => ['nullable', 'string', 'unique:teachers,phone,' . $request->slug . ',slug'],
                 'address' => 'nullable|string',
                 'qualification' => 'nullable|string',
                 'subject' => 'nullable|string',
@@ -275,7 +291,7 @@ class TeacherController extends Controller
                 'salary' => 'required|numeric|min:0',
                 'hire_date' => 'required|date',
                 'status' => 'required|in:active,resigned,on_leave',
-                'employment_type' => 'required|in:full-time,part-time,contract',
+                'employment_type' => 'required|in:fulltime,parttime,contract',
 
                 // personal
                 'full_name' => 'required|string',
@@ -292,8 +308,9 @@ class TeacherController extends Controller
 
             DB::beginTransaction();
 
+            $teacher = Teacher::where('slug', $request->slug)->with('personal')->firstOrFail();
 
-            $teacher->fill([
+            $teacher->update([
                 'teacher_name'     => $request->full_name,
                 'teacher_code'     => $request->teacher_code,
                 'email'            => $request->email,
@@ -306,33 +323,11 @@ class TeacherController extends Controller
                 'hire_date'        => $request->hire_date,
                 'status'           => $request->status,
                 'employment_type'  => $request->employment_type,
-            ])->save();
+            ]);
 
-            $fields = [
-                'full_name', 'birth_date', 'gender',
-                'region_code', 'township_code', 'citizenship',
-                'serial_number', 'nationality', 'religion', 'blood_type'
-            ];
+            $personalData = $request->input('personal');
 
-            $hasChanges = false;
-
-            foreach ($fields as $field) {
-                $original = $teacher->personal->$field;
-                $new = $request->input($field);
-
-                if ($field === 'birth_date') {
-                    $original = \Carbon\Carbon::parse($original)->toDateString();
-                    $new = \Carbon\Carbon::parse($new)->toDateString();
-                }
-
-                if ($original !== $new) {
-                    $hasChanges = true;
-                    break;
-                }
-            }
-
-            if ($hasChanges) {
-                PersonalUpdate::create([
+            $teacher->personal->update([
                     'personal_slug'    => $teacher->personal->slug,
                     'full_name'      => $request->full_name,
                     'birth_date'     => $request->birth_date,
@@ -347,8 +342,7 @@ class TeacherController extends Controller
                     'updatable_slug'   => $teacher->slug,
                     'updatable_type' => Teacher::class,
                 ]);
-            }
-
+        
             DB::commit();
 
             return response()->json([
@@ -362,6 +356,7 @@ class TeacherController extends Controller
                 'errors' => $e->validator->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('Student index error', ['error' => $e->getMessage()]);
 
             return response()->json([
                 'success' => false,
@@ -372,6 +367,7 @@ class TeacherController extends Controller
 
     public function handleAction(Request $request)
     {
+        try {
         $request->validate([
             'slug' => 'required|string|exists:teachers,slug',
             'action' => 'required|string|in:active,resigned,on_leave,restore,delete',
@@ -403,7 +399,7 @@ class TeacherController extends Controller
                 $teacher->status = 'resigned'; // or 'inactive' if you prefer
                 $teacher->save();
                 $teacher->delete();
-                return response()->json(['message' => 'Teacher is resigned'],200);
+                return response()->json(['message' => 'Teacher soft-deleted'],200);
 
             case 'restore':
                 if ($teacher->trashed()) {
@@ -417,5 +413,20 @@ class TeacherController extends Controller
             default:
                 return response()->json(['message' => 'Invalid action'], 400);
         }
+    }   
+        catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->validator->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Teacher index error', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        } 
     }
 }

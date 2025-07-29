@@ -5,11 +5,12 @@ namespace App\Models;
 use App\Models\Personal;
 use Ramsey\Uuid\Guid\Guid;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class Employee extends Authenticatable
 {
-    use SoftDeletes;
+    use SoftDeletes, HasFactory;
 
     protected $fillable = [
         'slug',

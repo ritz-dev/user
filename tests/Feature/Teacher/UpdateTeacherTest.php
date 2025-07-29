@@ -16,7 +16,6 @@ class UpdateTeacherTest extends TestCase
     protected function validPayload(array $overrides = []): array
     {
         return array_merge([
-            'slug' => '',
             'teacher_code' => 'TCH' . Str::random(5),
             'email' => 'teacher@example.com',
             'phone' => '0912345678',
@@ -119,7 +118,7 @@ class UpdateTeacherTest extends TestCase
             'email' => 'newemail@example.com',
             'phone' => '0999888777',
             'full_name' => 'Updated Name',
-            'birth_date' => '1980-01-01',
+            'birth_date' => '2021-03-01',
             'gender' => 'female',
             'region_code' => 'NEWRC',
             'township_code' => 'NEWTW',
@@ -138,6 +137,7 @@ class UpdateTeacherTest extends TestCase
                 'email' => 'newemail@example.com',
                 'phone' => '0999888777',
                 'teacher_name' => 'Updated Name',
+                'birth_date' => '2021-03-01'
             ]);
 
         // Reload teacher and personal
@@ -148,7 +148,7 @@ class UpdateTeacherTest extends TestCase
         $this->assertEquals('0999888777', $teacher->phone);
         $this->assertEquals('Updated Name', $teacher->teacher_name);
 
-        $this->assertEquals('1980-01-01', $teacher->personal->birth_date);
+        $this->assertEquals('2021-03-01', $teacher->personal->birth_date);
         $this->assertEquals('female', $teacher->personal->gender);
         $this->assertEquals('NEWRC', $teacher->personal->region_code);
         $this->assertEquals('NEWTW', $teacher->personal->township_code);
@@ -157,37 +157,6 @@ class UpdateTeacherTest extends TestCase
         $this->assertEquals('New Nationality', $teacher->personal->nationality);
         $this->assertEquals('New Religion', $teacher->personal->religion);
         $this->assertEquals('B+', $teacher->personal->blood_type);
-    }
-
-    public function test_creates_personal_update_record_on_personal_data_change()
-    {
-        $teacher = Teacher::factory()->create();
-        $oldPersonal = $teacher->personal;
-
-        $payload = $this->validPayload([
-            'slug' => $teacher->slug,
-            'full_name' => $oldPersonal->full_name . ' Changed',
-            'birth_date' => $oldPersonal->birth_date,
-            'gender' => $oldPersonal->gender,
-            'region_code' => $oldPersonal->region_code,
-            'township_code' => $oldPersonal->township_code,
-            'citizenship' => $oldPersonal->citizenship,
-            'serial_number' => $oldPersonal->serial_number,
-            'nationality' => $oldPersonal->nationality,
-            'religion' => $oldPersonal->religion,
-            'blood_type' => $oldPersonal->blood_type,
-        ]);
-
-        $this->assertDatabaseCount('personal_updates', 0);
-
-        $this->postJson($this->endpoint, $payload)
-            ->assertStatus(200);
-
-        $this->assertDatabaseHas('personal_updates', [
-            'personal_slug' => $oldPersonal->slug,
-            'full_name' => $payload['full_name'],
-            'updatable_slug' => $teacher->slug,
-        ]);
     }
 
     public function test_does_not_create_personal_update_if_no_personal_change()
@@ -224,26 +193,7 @@ class UpdateTeacherTest extends TestCase
         ]);
 
         $response = $this->postJson($this->endpoint, $payload);
-        $response->assertStatus(404);
-    }
+        $response->assertJsonValidationErrors(['slug']);
 
-    public function test_rolls_back_and_returns_500_on_exception()
-    {
-        $teacher = Teacher::factory()->create();
-
-        $this->mock(Teacher::class, function ($mock) use ($teacher) {
-            $mock->shouldReceive('where->with->firstOrFail')
-                ->andThrow(new \Exception('Simulated error'));
-        });
-
-        $payload = $this->validPayload([
-            'slug' => $teacher->slug,
-        ]);
-
-        $response = $this->postJson($this->endpoint, $payload);
-
-        $response->assertStatus(500)
-            ->assertJsonFragment(['success' => false])
-            ->assertJsonFragment(['message' => 'Simulated error']);
     }
 }

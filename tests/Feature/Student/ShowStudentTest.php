@@ -66,8 +66,7 @@ class ShowStudentTest extends TestCase
     {
         $this->postJson($this->endpoint, ['slug' => 'invalid-slug'])
             ->assertStatus(422)
-            ->assertJson(['message' => 'The selected slug is invalid.',
-                'errors' => ['slug' => ['The selected slug is invalid.']]]);
+            ->assertJsonValidationErrors(['slug' => 'The selected slug is invalid.']);
     }
 
     public function test_show_student_with_no_guardians()

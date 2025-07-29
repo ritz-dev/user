@@ -12,7 +12,6 @@ use App\Models\PersonalUpdate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use Illuminate\Validation\Validator;
 use Illuminate\Validation\ValidationException;
 
 class StudentController extends Controller
@@ -105,7 +104,7 @@ class StudentController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Failed to retrieve students.',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -247,6 +246,7 @@ class StudentController extends Controller
 
     public function show(Request $request)
     {
+        try {
         $validated = $request->validate([
             'slug' => 'required|string|exists:students,slug',
         ]);
@@ -321,12 +321,32 @@ class StudentController extends Controller
         ];
 
         return response()->json($response);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (Exception $e) {
+            Log::error('Student show error', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => 'Failed to retrieve student.',
+                'error' => $e->getMessage(),
+            ], 500);
+        } catch (\Throwable $e) {
+            Log::error('Student show error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to retrieve student.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
 
     public function update(Request $request)
     {
         try {
+            
             // ✅ Validate input
             $validated = $request->validate([
                 'slug' => 'required|string|exists:students,slug',

@@ -19,8 +19,7 @@ class ActionStudentTest extends TestCase
         // You might want to set up auth or middleware here if needed
     }
 
-    /** @test */
-    public function it_requires_slug_and_valid_action()
+    public function test_requires_slug_and_valid_action()
     {
         $response = $this->postJson($this->endpoint, []);
         $response->assertStatus(422)
@@ -34,10 +33,9 @@ class ActionStudentTest extends TestCase
                  ->assertJsonValidationErrors(['slug', 'action']);
     }
 
-    /** @test */
-    public function it_can_set_status_to_enrolled()
+    public function test_can_set_status_to_enrolled()
     {
-        $student = Student::factory()->create(['status' => 'inactive']);
+        $student = Student::factory()->create(['status' => 'graduated']);
         $response = $this->postJson($this->endpoint, [
             'slug' => $student->slug,
             'action' => 'enrolled',
@@ -51,8 +49,7 @@ class ActionStudentTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_can_set_status_to_graduated()
+    public function test_can_set_status_to_graduated()
     {
         $student = Student::factory()->create();
         $response = $this->postJson($this->endpoint, [
@@ -68,8 +65,7 @@ class ActionStudentTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_can_set_status_to_suspended()
+    public function test_can_set_status_to_suspended()
     {
         $student = Student::factory()->create();
         $response = $this->postJson($this->endpoint, [
@@ -85,8 +81,7 @@ class ActionStudentTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_can_set_status_to_inactive()
+    public function test_can_set_status_to_inactive()
     {
         $student = Student::factory()->create();
         $response = $this->postJson($this->endpoint, [
@@ -102,8 +97,7 @@ class ActionStudentTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_can_soft_delete_student()
+    public function test_can_soft_delete_student()
     {
         $student = Student::factory()->create(['status' => 'enrolled']);
         $response = $this->postJson($this->endpoint, [
@@ -121,8 +115,7 @@ class ActionStudentTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_can_restore_soft_deleted_student()
+    public function test_can_restore_soft_deleted_student()
     {
         $student = Student::factory()->create(['status' => 'inactive']);
         $student->delete();
@@ -142,7 +135,6 @@ class ActionStudentTest extends TestCase
         ]);
     }
 
-    /** @test */
     public function restore_returns_error_if_student_not_deleted()
     {
         $student = Student::factory()->create();
@@ -156,8 +148,7 @@ class ActionStudentTest extends TestCase
                  ->assertJson(['message' => 'Student is not deleted']);
     }
 
-    /** @test */
-    public function it_returns_error_for_invalid_action()
+    public function test_returns_error_for_invalid_action()
     {
         $student = Student::factory()->create();
 
