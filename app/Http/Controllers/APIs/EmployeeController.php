@@ -320,7 +320,7 @@ class EmployeeController extends Controller
                     'serial_number' => $validated['serial_number'],
                     'nationality' => $validated['nationality'] ?? null,
                     'religion' => $validated['religion'] ?? null,
-                    'blood_type' => $validated['blood_type'],
+                    'blood_type' => $validated['blood_type'] ?? null,
                     'updatable_slug' => $employee->slug,
                     'updatable_type' => Employee::class,
                 ]);
