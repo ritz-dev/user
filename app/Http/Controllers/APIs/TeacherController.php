@@ -281,9 +281,21 @@ class TeacherController extends Controller
             $validated = $request->validate([
                 // teacher
                 'slug' => 'required|string|exists:teachers,slug',
-                'teacher_code' => ['required', 'string','unique:teachers,teacher_code,' . $request->slug . ',slug'],
-                'email' => ['nullable', 'email', 'unique:teachers,email,' . $request->slug . ',slug'],
-                'phone' => ['nullable', 'string', 'unique:teachers,phone,' . $request->slug . ',slug'],
+                'teacher_code' => [
+                    'required',
+                    'string',
+                    Rule::unique('teachers', 'teacher_code')->ignore($request->slug, 'slug')
+                ],
+                'email' => [
+                    'nullable',
+                    'email',
+                    Rule::unique('teachers', 'email')->ignore($request->slug, 'slug')
+                ],
+                'phone' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('teachers', 'phone')->ignore($request->slug, 'slug')
+                ],
                 'address' => 'nullable|string',
                 'qualification' => 'nullable|string',
                 'subject' => 'nullable|string',
