@@ -279,6 +279,7 @@ class EmployeeController extends Controller
 
             $employee->update([
                 'employee_code'     => $validated['employee_code'],
+                'employee_name'   => $validated['full_name'],
                 'email'             => $validated['email'],
                 'phone'             => $validated['phone'],
                 'address'           => $validated['address'],
