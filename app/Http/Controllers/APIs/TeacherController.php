@@ -8,6 +8,7 @@ use App\Models\Teacher;
 use App\Models\Personal;
 use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Validation\ValidationException;
