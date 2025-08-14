@@ -9,6 +9,7 @@ use App\Models\Personal;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PersonalUpdate;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
@@ -350,12 +351,28 @@ class StudentController extends Controller
             // ✅ Validate input
             $validated = $request->validate([
                 'slug' => 'required|string|exists:students,slug',
-                'student_number' => 'required|string|unique:students,student_number,' . $request->slug . ',slug',
-                'registration_number' => 'nullable|string|unique:students,registration_number,' . $request->slug . ',slug',
+                'student_number' => [
+                    'required',
+                    'string',
+                    Rule::unique('students', 'student_number')->ignore($request->slug, 'slug')
+                ],
+                'registration_number' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('students', 'registration_number')->ignore($request->slug, 'slug')
+                ],
+                'email' => [
+                    'nullable',
+                    'email',
+                    Rule::unique('students', 'email')->ignore($request->slug, 'slug')
+                ],
+                'phone' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('students', 'phone')->ignore($request->slug, 'slug')
+                ],
                 'school_name' => 'required|string',
                 'school_code' => 'nullable|string',
-                'email' => 'nullable|email|unique:students,email,' . $request->slug . ',slug',
-                'phone' => 'nullable|string|unique:students,phone,' . $request->slug . ',slug',
                 'address' => 'nullable|string',
                 'status' => 'required|in:enrolled,graduated,suspended,inactive',
                 'graduation_date' => 'nullable|date',
