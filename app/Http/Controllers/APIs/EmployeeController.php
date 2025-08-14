@@ -237,9 +237,21 @@ class EmployeeController extends Controller
 
             $validated = $request->validate([
                 'slug' => 'required|string|exists:employees,slug',
-                'employee_code' => ['required', 'string', 'unique:employees,employee_code'],
-                'email' => ['nullable', 'email', 'unique:employees,email'],
-                'phone' => ['nullable', 'string', 'unique:employees,phone'],
+                'employee_code' => [
+                    'required',
+                    'string',
+                    Rule::unique('employees', 'employee_code')->ignore($request->slug, 'slug')
+                ],
+                'email' => [
+                    'nullable',
+                    'email',
+                    Rule::unique('employees', 'email')->ignore($request->slug, 'slug')
+                ],
+                'phone' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('employees', 'phone')->ignore($request->slug, 'slug')
+                ],
                 'address' => 'nullable|string',
                 'position' => 'nullable|string',
                 'department' => 'nullable|string',
