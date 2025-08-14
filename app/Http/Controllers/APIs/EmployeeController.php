@@ -318,7 +318,7 @@ class EmployeeController extends Controller
                     'township_code' => $validated['township_code'],
                     'citizenship' => $validated['citizenship'],
                     'serial_number' => $validated['serial_number'],
-                    'nationality' => $validated['nationality'],
+                    'nationality' => $validated['nationality'] ?? null,
                     'religion' => $validated['religion'],
                     'blood_type' => $validated['blood_type'],
                     'updatable_slug' => $employee->slug,
